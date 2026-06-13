@@ -1,0 +1,2320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevPath AI Storyboard v4.0</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Fira+Code:wght@400;500&display=swap");
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --color-bg:#0d1117;--color-surface:#161b22;--color-border:#21262d;
+  --color-border-light:#30363d;--color-text:#c9d1d9;--color-text-dim:#8b949e;
+  --color-text-bright:#f0f6fc;--color-link:#58a6ff;
+  --font-sans:"Noto Sans KR",sans-serif;--font-mono:"Fira Code","Consolas",monospace;
+  --slide-width:960px;--slide-height:540px;
+  --role-color:#64748b;--role-bg:#1e293b;--role-text:#f1f5f9;
+}
+
+html,body{width:100%;height:100%;overflow:hidden;background:#010409;font-family:var(--font-sans);color:var(--color-text)}
+
+/* === Role colors === */
+[data-role="ALL"]{--role-color:#64748b;--role-bg:#1e293b;--role-text:#f1f5f9}
+[data-role="PUBLIC"]{--role-color:#8b949e;--role-bg:#1e293b;--role-text:#f1f5f9}
+[data-role="LEARNER"]{--role-color:#3fb950;--role-bg:#0d2818;--role-text:#a7f3d0}
+[data-role="ADMIN"]{--role-color:#58a6ff;--role-bg:#0c2d6b;--role-text:#bfdbfe}
+
+/* === Slide layout === */
+.presentation{width:100vw;height:100vh;display:grid;place-items:center;background:#010409}
+.slides{width:var(--slide-width);height:var(--slide-height);display:grid;transform:scale(var(--slide-scale,1));transform-origin:center center;overflow:hidden;position:relative}
+.slide{grid-area:1/1;width:100%;height:100%;opacity:0;visibility:hidden;transition:opacity .45s ease,visibility .45s;background:var(--color-bg);overflow:hidden}
+.slide.active{opacity:1;visibility:visible;z-index:1}
+
+/* === Title slide === */
+.title-slide{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:linear-gradient(135deg,#0d1117 0%,#161b22 40%,#1a1f35 100%)}
+.title-slide h1{font-size:36px;font-weight:900;background:linear-gradient(135deg,#58a6ff,#3fb950);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
+.title-slide .subtitle{font-size:16px;color:var(--color-text-dim);margin-bottom:20px}
+.title-slide .meta-info{display:flex;gap:16px;font-size:12px;color:var(--color-text-dim)}
+
+.tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.tag-blue{background:rgba(88,166,255,.15);color:#58a6ff}
+.tag-green{background:rgba(63,185,80,.15);color:#3fb950}
+.tag-purple{background:rgba(188,140,255,.15);color:#bc8cff}
+.tag-yellow{background:rgba(210,153,34,.15);color:#d29922}
+.tag-red{background:rgba(248,113,113,.15);color:#f87171}
+
+/* === Info slide === */
+.info-slide{display:flex;flex-direction:column;padding:40px 48px}
+.info-slide h2{font-size:22px;font-weight:700;color:var(--color-text-bright);margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid var(--color-border)}
+.info-slide h3{font-size:14px;font-weight:600;color:var(--color-link);margin:14px 0 8px}
+.info-table{width:100%;border-collapse:collapse;font-size:12px}
+.info-table th{background:var(--color-surface);color:var(--color-link);padding:6px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--color-border-light)}
+.info-table td{padding:5px 10px;border-bottom:1px solid var(--color-border);color:var(--color-text)}
+.role-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+/* === SB slide (3-row) === */
+.sb-slide{display:grid;grid-template-rows:44px 32px 1fr;grid-template-areas:"header" "badges" "main"}
+.slide-header{grid-area:header;background:var(--role-bg);border-bottom:2px solid var(--role-color);display:flex;align-items:center;justify-content:space-between;padding:0 16px;color:var(--role-text);font-size:12px;font-weight:600}
+.header-screen-id{font-size:11px;opacity:.7;background:rgba(255,255,255,.08);padding:2px 8px;border-radius:10px}
+.slide-badges{grid-area:badges;display:flex;align-items:center;gap:8px;padding:0 16px;background:var(--color-surface);border-bottom:1px solid var(--color-border)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
+.badge-method{background:#1a3a1a;color:#4ade80;border:1px solid #166534}
+.badge-template{background:#1a2a3a;color:#93c5fd;border:1px solid #1e40af}
+.badge-access{background:var(--role-bg);color:var(--role-text);border:1px solid var(--role-color)}
+.method-label{font-family:var(--font-mono);font-weight:700}
+.method-get{color:#61affe}.method-post{color:#49cc90}.method-put{color:#fca130}.method-delete{color:#f93e3e}
+.slide-main{grid-area:main;display:grid;grid-template-columns:3fr 2fr;overflow:hidden}
+
+/* === Journey flow === */
+.journey-flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0}
+.journey-node{background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:6px;padding:8px 14px;font-size:11px;color:var(--color-text);text-align:center;min-width:80px}
+.journey-node.start{border-color:var(--role-color);color:var(--role-color);font-weight:700}
+.journey-node.aha{border-color:#f59e0b;color:#f59e0b;font-weight:700}
+.journey-arrow{color:var(--color-text-dim);font-size:16px}
+
+/* === Mockup components === */
+.slide-mockup{background:#0d1117;border-right:1px solid var(--color-border);overflow:hidden;padding:8px;display:flex;flex-direction:column;font-size:10px;color:var(--color-text-dim)}
+.mock-browser{border:1px solid var(--color-border-light);border-radius:6px;overflow:hidden;flex:1;display:flex;flex-direction:column}
+.mock-browser-bar{background:var(--color-surface);padding:4px 8px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--color-border-light)}
+.mock-browser-dots{display:flex;gap:3px}
+.mock-browser-dots span{width:6px;height:6px;border-radius:50%;background:var(--color-border-light)}
+.mock-browser-url{flex:1;background:var(--color-bg);border-radius:3px;padding:2px 6px;font-size:8px;color:var(--color-link);font-family:var(--font-mono)}
+.mock-browser-body{flex:1;padding:6px;overflow:hidden}
+.mock-navbar{background:var(--color-surface);padding:4px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--color-border-light);font-size:9px;margin-bottom:6px;border-radius:3px}
+.mock-navbar-brand{color:var(--color-text-bright);font-weight:700}
+.mock-navbar-links{display:flex;gap:8px}
+.mock-navbar-links span{color:var(--color-text-dim);cursor:default}
+.mock-navbar-links span.active{color:var(--role-color,#58a6ff);font-weight:600}
+.mock-table{width:100%;border-collapse:collapse;font-size:8px;margin:4px 0}
+.mock-table th{background:var(--color-surface);color:var(--color-link);padding:3px 6px;text-align:left;border-bottom:1px solid var(--color-border-light);font-weight:600}
+.mock-table td{padding:3px 6px;border-bottom:1px solid var(--color-border);color:var(--color-text-dim)}
+.mock-table tr:hover td{background:rgba(88,166,255,.04)}
+.mock-btn{display:inline-block;padding:2px 8px;border-radius:3px;font-size:8px;font-weight:600;border:1px solid var(--color-border-light);cursor:default}
+.mock-btn-primary{background:var(--role-color,#58a6ff);color:#fff;border-color:transparent}
+.mock-btn-outline{background:transparent;color:var(--color-text-dim)}
+.mock-btn-danger{background:#da3633;color:#fff;border-color:transparent}
+.mock-btn-group{display:flex;gap:4px;margin-top:6px}
+.mock-card{background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:4px;padding:6px;margin-bottom:4px}
+.mock-card-title{font-size:9px;font-weight:600;color:var(--color-text-bright)}
+.mock-card-text{font-size:8px;color:var(--color-text-dim);margin-top:2px}
+.mock-status{display:inline-block;padding:1px 5px;border-radius:8px;font-size:7px;font-weight:600}
+.mock-status-todo{background:#21262d;color:#8b949e}
+.mock-status-doing{background:rgba(210,153,34,.15);color:#d29922}
+.mock-status-done{background:rgba(63,185,80,.15);color:#3fb950}
+.mock-form-group{margin-bottom:5px}
+.mock-form-label{display:block;font-size:8px;color:var(--color-text-dim);margin-bottom:1px}
+.mock-form-input{width:100%;padding:3px 6px;background:var(--color-bg);border:1px solid var(--color-border-light);border-radius:3px;color:var(--color-text);font-size:8px}
+.mock-form-textarea{width:100%;padding:3px 6px;background:var(--color-bg);border:1px solid var(--color-border-light);border-radius:3px;color:var(--color-text);font-size:8px;min-height:40px;resize:none}
+.mock-search-bar{display:flex;gap:4px;margin-bottom:6px}
+.mock-search-input{flex:1;padding:3px 6px;background:var(--color-bg);border:1px solid var(--color-border-light);border-radius:3px;color:var(--color-text);font-size:8px}
+.mock-detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--color-border)}
+.mock-detail-title{font-size:12px;font-weight:700;color:var(--color-text-bright)}
+.mock-detail-row{display:flex;gap:12px;font-size:8px;margin-bottom:3px}
+.mock-detail-label{color:var(--color-text-dim);min-width:50px}
+.mock-detail-value{color:var(--color-text)}
+.mock-detail-content{background:var(--color-bg);border:1px solid var(--color-border);border-radius:4px;padding:6px;margin-top:6px;font-size:9px;color:var(--color-text);line-height:1.5;min-height:60px}
+.mock-pagination{display:flex;gap:2px;justify-content:center;margin-top:4px}
+.mock-pagination span{display:inline-block;width:16px;height:16px;text-align:center;line-height:16px;font-size:7px;border-radius:3px;background:var(--color-border);color:var(--color-text-dim)}
+.mock-pagination span.active{background:var(--role-color,#58a6ff);color:#fff}
+
+/* Mobile frame */
+.mock-mobile-frame{width:160px;border:2px solid var(--color-border-light);border-radius:16px;padding:20px 4px 16px;background:var(--color-bg);position:relative;margin:0 auto}
+.mock-mobile-frame::before{content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:40px;height:4px;border-radius:2px;background:var(--color-border-light)}
+.mock-mobile-frame .mock-screen{width:100%;overflow:hidden;border-radius:4px}
+
+/* === Panel === */
+.slide-panel{display:flex;flex-direction:column;overflow-y:auto;background:var(--color-bg);scrollbar-width:thin;scrollbar-color:#475569 transparent}
+.panel-section{border-bottom:1px solid var(--color-border)}
+.panel-section-header{list-style:none;display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--role-color);cursor:pointer;user-select:none;background:var(--color-surface)}
+.panel-section-header::-webkit-details-marker{display:none}
+.panel-section-header::after{content:"▸";margin-left:auto;font-size:8px;transition:transform .2s ease}
+.panel-section[open]>.panel-section-header::after{transform:rotate(90deg)}
+.panel-section-body{padding:8px 12px;font-size:11px;line-height:1.6;color:var(--color-text-dim)}
+.panel-section[open] .panel-section-body{animation:panel-slide-down .15s ease-out}
+@keyframes panel-slide-down{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+.action-table,.error-table,.valid-table{width:100%;border-collapse:collapse;font-size:10px}
+.action-table th,.error-table th,.valid-table th{background:#0f172a;color:#64748b;font-size:9px;text-transform:uppercase;letter-spacing:.05em;padding:4px 6px;text-align:left;border-bottom:1px solid #334155}
+.action-table td,.error-table td,.valid-table td{padding:3px 6px;border-bottom:1px solid #1e293b}
+.action-table code{font-size:9px;color:#7dd3fc;font-family:var(--font-mono)}
+
+.method-badge{display:inline-block;padding:1px 4px;border-radius:2px;font-size:8px;font-weight:700;font-family:var(--font-mono);min-width:28px;text-align:center;color:#fff}
+.method-badge.get{background:#61affe}.method-badge.post{background:#49cc90}.method-badge.put{background:#fca130}.method-badge.delete{background:#f93e3e}
+
+.status-badge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;font-family:var(--font-mono)}
+.status-401{background:#fef3c7;color:#92400e}.status-403{background:#fee2e2;color:#991b1b}.status-404{background:#e0e7ff;color:#3730a3}.status-500{background:#f3e8ff;color:#6b21a8}
+
+.vm-tree,.vm-tree ul{list-style:none;margin:0;padding:0 0 0 1em;position:relative;font-size:10px;font-family:var(--font-mono)}
+.vm-tree ul::before{content:"";position:absolute;left:.3em;top:0;bottom:.5em;border-left:1px solid #334155}
+.vm-node{position:relative;padding:2px 0 2px .7em;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap}
+.vm-node::before{content:"";position:absolute;left:-.7em;top:.6em;width:.7em;border-top:1px solid #334155}
+.vm-key{color:#7dd3fc;font-weight:600}.vm-type{color:#86efac;font-style:italic}
+
+.perm-row{background:#0f172a;color:#94a3b8;font-size:10px;padding:6px;margin-top:6px;border-radius:4px}
+.perm-badge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;background:#7c3aed;color:#fff;margin-right:4px}
+
+/* === UI Overlays === */
+.role-filter{position:fixed;top:8px;right:8px;z-index:100;display:flex;gap:4px;background:rgba(22,27,34,.95);padding:4px 8px;border-radius:8px;border:1px solid var(--color-border)}
+.role-filter-btn{padding:3px 10px;border-radius:6px;border:1px solid var(--color-border-light);background:transparent;color:var(--color-text-dim);font-size:10px;font-weight:600;cursor:pointer;font-family:var(--font-sans);transition:all .15s}
+.role-filter-btn:hover{background:var(--color-surface)}
+.role-filter-btn.active{background:var(--color-border-light);color:var(--color-text-bright)}
+
+.progress-bar{position:fixed;bottom:0;left:0;width:100%;height:3px;background:rgba(255,255,255,.05);z-index:100}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#58a6ff,#3fb950);transition:width .3s ease}
+.slide-counter{position:fixed;bottom:8px;right:12px;z-index:100;font-size:11px;color:var(--color-text-dim);font-family:var(--font-mono)}
+
+.toc-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;opacity:0;pointer-events:none;transition:opacity .25s ease}
+.toc-overlay.visible{opacity:1;pointer-events:auto}
+.toc-sidebar{position:fixed;top:0;left:0;width:280px;height:100vh;background:var(--color-surface);color:var(--color-text);overflow-y:auto;z-index:1000;padding:1.5rem;transform:translateX(-100%);transition:transform .25s ease;border-right:1px solid var(--color-border)}
+.toc-sidebar.toc-open{transform:translateX(0)}
+.toc-title{font-size:14px;font-weight:700;color:var(--color-text-bright);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--color-border)}
+#toc-list{list-style:none}
+.toc-set-header{font-size:10px;font-weight:700;color:var(--color-link);text-transform:uppercase;letter-spacing:.1em;padding:10px 0 4px;margin-top:4px;border-top:1px solid var(--color-border)}
+.toc-set-header:first-child{border-top:none;margin-top:0}
+.toc-item{padding:5px 8px;font-size:11px;cursor:pointer;border-radius:4px;transition:background .1s;display:flex;align-items:center;gap:8px}
+.toc-item:hover{background:var(--color-border)}
+.toc-item.active{background:rgba(88,166,255,.12);color:var(--color-link)}
+.toc-role-badge{font-size:9px;padding:1px 5px;border-radius:8px;background:var(--color-border);color:var(--color-text-dim);font-weight:600}
+
+.help-overlay{position:fixed;inset:0;z-index:3000;background:rgba(1,4,9,.92);display:none;place-items:center}
+.help-overlay.show{display:grid}
+.help-box{background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:12px;padding:32px 40px;max-width:500px;width:90%}
+.help-box h2{font-size:18px;color:var(--color-text-bright);margin-bottom:16px}
+.help-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--color-border);font-size:12px}
+.help-key{display:inline-block;background:var(--color-border);padding:2px 8px;border-radius:4px;font-family:var(--font-mono);font-size:11px;color:var(--color-text-bright)}
+
+/* === Interactive === */
+.sim-mode-badge{position:fixed;bottom:8px;left:12px;z-index:100;font-size:10px;color:#fbbf24;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);padding:2px 8px;border-radius:10px;font-weight:600}
+[data-action]{cursor:pointer;transition:all .15s ease}
+[data-action]:hover{filter:brightness(1.2)}
+[data-action]:active{transform:scale(.97)}
+
+.sim-input{width:100%;padding:3px 6px;background:var(--color-bg);border:1px solid var(--color-border-light);border-radius:3px;color:var(--color-text);font-size:8px;font-family:var(--font-sans);outline:none;transition:border-color .15s}
+.sim-input:focus{border-color:var(--role-color,#58a6ff);box-shadow:0 0 0 1px var(--role-color,#58a6ff)}
+.sim-input.sim-invalid{border-color:#f87171;box-shadow:0 0 0 1px #f87171}
+.sim-select{padding:3px 6px;background:var(--color-bg);border:1px solid var(--color-border-light);border-radius:3px;color:var(--color-text);font-size:8px;font-family:var(--font-sans);outline:none;cursor:pointer}
+.sim-textarea{width:100%;padding:3px 6px;background:var(--color-bg);border:1px solid var(--color-border-light);border-radius:3px;color:var(--color-text);font-size:8px;font-family:var(--font-sans);min-height:40px;resize:none;outline:none}
+.sim-textarea:focus{border-color:var(--role-color,#58a6ff);box-shadow:0 0 0 1px var(--role-color,#58a6ff)}
+.sim-error-msg{font-size:7px;color:#f87171;margin-top:1px;display:none}
+.sim-invalid~.sim-error-msg{display:block}
+
+tr[data-action]{cursor:pointer}
+tr[data-action]:hover td{background:rgba(88,166,255,.08)}
+
+.sim-modal-overlay{position:absolute;inset:0;background:rgba(1,4,9,.8);display:none;place-items:center;z-index:50}
+.sim-modal-overlay.sim-show{display:grid}
+.sim-modal{background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:8px;padding:16px 20px;max-width:280px;width:85%;animation:sim-modal-in .2s ease-out}
+@keyframes sim-modal-in{from{opacity:0;transform:translateY(-8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.sim-modal-title{font-size:11px;font-weight:700;color:var(--color-text-bright);margin-bottom:8px}
+.sim-modal-body{font-size:9px;color:var(--color-text-dim);margin-bottom:12px;line-height:1.5}
+.sim-modal-actions{display:flex;gap:6px;justify-content:flex-end}
+
+.sim-toast-container{position:absolute;top:50px;right:8px;z-index:60;display:flex;flex-direction:column;gap:4px;pointer-events:none}
+.sim-toast{background:#1a7f37;color:#fff;padding:6px 12px;border-radius:6px;font-size:9px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.4);animation:sim-toast-in .25s ease-out,sim-toast-out .3s ease-in 2.2s forwards;pointer-events:auto}
+.sim-toast.sim-toast-error{background:#da3633}
+@keyframes sim-toast-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes sim-toast-out{from{opacity:1}to{opacity:0;transform:translateY(-10px)}}
+
+.sim-tabs{display:flex;gap:0;border-bottom:1px solid var(--color-border);margin-bottom:6px}
+.sim-tab{padding:3px 8px;font-size:8px;color:var(--color-text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.sim-tab:hover{color:var(--color-text)}
+.sim-tab.sim-tab-active{color:var(--role-color,#58a6ff);border-bottom-color:var(--role-color,#58a6ff);font-weight:600}
+.sim-tab-panel{display:none}
+.sim-tab-panel.sim-tab-active{display:block}
+.sim-toggle-target{display:none}
+.sim-toggle-target.sim-show{display:block}
+
+/* === Custom helpers === */
+.hero-section{text-align:center;padding:16px 12px}
+.hero-title{font-size:14px;font-weight:900;color:var(--color-text-bright);margin-bottom:4px}
+.hero-sub{font-size:9px;color:var(--color-text-dim);margin-bottom:8px}
+.feature-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:6px}
+.progress-indicator{height:4px;background:var(--color-border);border-radius:2px;margin-bottom:6px}
+.progress-indicator-fill{height:100%;background:var(--role-color,#3fb950);border-radius:2px;transition:width .3s}
+.chat-bubble{padding:4px 8px;border-radius:6px;font-size:8px;margin-bottom:3px;max-width:85%;line-height:1.4}
+.chat-user{background:var(--role-color,#3fb950);color:#fff;margin-left:auto;border-bottom-right-radius:2px}
+.chat-ai{background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border-light);border-bottom-left-radius:2px}
+.chat-system{background:rgba(88,166,255,.1);color:var(--color-link);border:1px solid rgba(88,166,255,.2);font-size:7px;text-align:center}
+.code-block{background:#0d1117;border:1px solid var(--color-border-light);border-radius:4px;padding:4px 6px;font-family:var(--font-mono);font-size:7px;color:#e6edf3;line-height:1.5;overflow:hidden}
+.code-keyword{color:#ff7b72}.code-string{color:#a5d6ff}.code-comment{color:#8b949e}.code-type{color:#79c0ff}
+.aha-badge{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;padding:4px 10px;border-radius:8px;font-size:8px;font-weight:700;display:inline-block;margin-top:4px}
+.blur-overlay{filter:blur(4px);pointer-events:none;user-select:none}
+.kpi-card{background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:4px;padding:6px;text-align:center}
+.kpi-value{font-size:14px;font-weight:900;color:var(--color-text-bright)}
+.kpi-label{font-size:7px;color:var(--color-text-dim)}
+.kpi-delta{font-size:7px;color:#3fb950}
+.funnel-bar{height:10px;border-radius:3px;margin-bottom:2px;display:flex;align-items:center;padding-left:4px;font-size:7px;color:#fff;font-weight:600}
+.check-selected{color:#3fb950;font-weight:700}
+.oauth-btn{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:4px;font-size:9px;font-weight:600;border:1px solid var(--color-border-light);margin-bottom:3px;background:var(--color-surface);color:var(--color-text)}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--color-border-light);border-top-color:var(--color-link);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.profile-chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:8px;font-weight:600;border:1px solid var(--color-border-light);margin:1px}
+.profile-chip.selected{background:var(--role-color,#3fb950);color:#fff;border-color:transparent}
+.week-card{background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:4px;padding:4px 6px;margin-bottom:3px;font-size:8px}
+.week-card-title{color:var(--color-text-bright);font-weight:600;font-size:9px}
+.sidebar-toc{width:28%;background:var(--color-surface);border-right:1px solid var(--color-border);padding:4px;font-size:7px;overflow:hidden}
+.sidebar-toc-item{padding:2px 4px;border-radius:3px;margin-bottom:1px;cursor:default}
+.sidebar-toc-item.active{background:rgba(88,166,255,.12);color:var(--color-link)}
+.review-item{display:flex;align-items:flex-start;gap:4px;margin-bottom:3px;font-size:8px}
+.review-icon{flex-shrink:0}
+.notif-item{display:flex;align-items:center;gap:6px;padding:4px 6px;border-bottom:1px solid var(--color-border);font-size:8px}
+.streak-badge{background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;padding:3px 8px;border-radius:6px;font-size:9px;font-weight:700}
+.kill-switch{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:8px;font-weight:600;cursor:pointer}
+.kill-switch-on{background:#da3633;color:#fff}
+.kill-switch-off{background:var(--color-surface);color:var(--color-text-dim);border:1px solid var(--color-border-light)}
+
+/* Loader anim */
+.loading-bar{height:6px;background:var(--color-border);border-radius:3px;overflow:hidden;margin:8px 0}
+.loading-bar-fill{height:100%;background:linear-gradient(90deg,#58a6ff,#3fb950);border-radius:3px;animation:loading 2s ease-in-out infinite}
+@keyframes loading{0%{width:0}50%{width:80%}100%{width:100%}}
+
+/* SSE progress */
+.sse-progress{padding:6px;background:var(--color-surface);border:1px solid var(--color-border-light);border-radius:4px;margin:4px 0}
+.sse-line{font-size:8px;color:var(--color-text-dim);padding:1px 0}
+.sse-line.done{color:#3fb950}
+</style>
+</head>
+<body>
+
+<div class="presentation">
+<div class="slides">
+
+<!-- ============================================================ -->
+<!-- SET: intro (ALL) — 3 slides -->
+<!-- ============================================================ -->
+
+<!-- Slide 1: Title -->
+<section class="slide title-slide active" data-role="ALL" data-id="01" data-set="intro" id="slide-1">
+  <h1>DevPath AI</h1>
+  <p class="subtitle">스토리보드 v4.0 — 인터랙티브 프로토타입</p>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <span class="tag tag-blue">Spring Boot 4</span>
+    <span class="tag tag-green">React 18</span>
+    <span class="tag tag-purple">Flutter 3.x</span>
+    <span class="tag tag-yellow">Claude API</span>
+    <span class="tag tag-red">pgvector</span>
+  </div>
+  <div class="meta-info"><span>2026-04-29</span><span>DevPath AI Team</span></div>
+</section>
+
+<!-- Slide 2: Role definitions -->
+<section class="slide info-slide" data-role="ALL" data-id="02" data-set="intro" id="slide-2">
+  <h2>역할 정의</h2>
+  <table class="info-table">
+    <thead><tr><th>역할명</th><th>상수</th><th>색상</th><th>주요 설명</th></tr></thead>
+    <tbody>
+      <tr><td><span class="role-dot" style="background:#8b949e"></span>PUBLIC</td><td><code>PUBLIC</code></td><td style="color:#8b949e">#8b949e</td><td>비회원 — 랜딩, 진단, 가입</td></tr>
+      <tr><td><span class="role-dot" style="background:#3fb950"></span>LEARNER</td><td><code>LEARNER</code></td><td style="color:#3fb950">#3fb950</td><td>학습자 — 경로, Sandbox, 커뮤니티</td></tr>
+      <tr><td><span class="role-dot" style="background:#58a6ff"></span>ADMIN</td><td><code>ADMIN</code></td><td style="color:#58a6ff">#58a6ff</td><td>관리자 — 운영, 콘텐츠, 사용자 관리</td></tr>
+    </tbody>
+  </table>
+  <h3>화면 구성</h3>
+  <table class="info-table">
+    <thead><tr><th>세트</th><th>역할</th><th>슬라이드</th><th>화면 수</th></tr></thead>
+    <tbody>
+      <tr><td>intro</td><td>ALL</td><td>#1-#3</td><td>3</td></tr>
+      <tr><td>landing ~ first-aha</td><td>PUBLIC/LEARNER</td><td>#4-#11</td><td>8</td></tr>
+      <tr><td>learning ~ dashboard</td><td>LEARNER</td><td>#12-#25</td><td>14</td></tr>
+      <tr><td>admin-*</td><td>ADMIN</td><td>#26-#34</td><td>9</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- Slide 3: User Journey -->
+<section class="slide info-slide" data-role="ALL" data-id="03" data-set="intro" id="slide-3">
+  <h2>사용자 여정도</h2>
+  <h3 style="color:#8b949e">PUBLIC 여정</h3>
+  <div class="journey-flow">
+    <div class="journey-node start">랜딩 #4</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">진단 테스트 #5</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">로그인 유도 #6</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">OAuth #7</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">프로필 설정 #8</div>
+  </div>
+  <h3 style="color:#3fb950">LEARNER 여정</h3>
+  <div class="journey-flow">
+    <div class="journey-node">GitHub 분석 #9</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node aha">1st Aha #10</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">과제 #11</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">콘텐츠 #12</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">Sandbox #13</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node aha">2nd Aha #14</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">멘토 #15</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">커뮤니티 #17</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">Q&A 작성 #20</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">AI 시드 #19</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node" style="border-color:#f59e0b;color:#f59e0b">에스컬레이션 #34</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">대시보드 #25</div>
+  </div>
+  <h3 style="color:#58a6ff">ADMIN (독립)</h3>
+  <div class="journey-flow">
+    <div class="journey-node start">운영 #26</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">AI 모니터링 #27</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">신고 #28</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">콘텐츠 #29</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">사용자 #31</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node">FinOps #32</div><span class="journey-arrow">&rarr;</span>
+    <div class="journey-node" style="border-color:#f59e0b;color:#f59e0b">AI 대시보드 #33</div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: landing (PUBLIC) -->
+<!-- ============================================================ -->
+
+<!-- Slide 4: Landing page -->
+<section class="slide sb-slide" data-role="PUBLIC" data-id="04" data-set="landing" id="slide-4">
+  <header class="slide-header">
+    <span class="header-title">DevPath AI | PUBLIC</span>
+    <span class="header-screen-id">Landing</span>
+  </header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /</span>
+    <span class="badge badge-template">landing.tsx</span>
+    <span class="badge badge-access">PUBLIC</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar">
+            <span class="mock-navbar-brand">DevPath AI</span>
+            <div class="mock-navbar-links"><span class="active">Home</span><span>Features</span><span data-action="goto:slide-6">로그인</span></div>
+          </div>
+          <div class="hero-section">
+            <div class="hero-title">내 수준에 맞는 다음 단계를<br>AI가 안내합니다</div>
+            <div class="hero-sub">Spring Boot 백엔드 개발자를 위한 AI 맞춤 학습 플랫폼</div>
+            <span class="mock-btn mock-btn-primary" style="padding:5px 16px;font-size:10px" data-action="goto:slide-5">무료로 학습 경로 받기 &rarr;</span>
+          </div>
+          <div class="feature-cards">
+            <div class="mock-card"><div class="mock-card-title">AI 학습 경로</div><div class="mock-card-text">GitHub 분석 기반 12주 로드맵</div></div>
+            <div class="mock-card"><div class="mock-card-title">Sandbox 실습</div><div class="mock-card-text">브라우저 코드 실행 + AI 리뷰</div></div>
+            <div class="mock-card"><div class="mock-card-title">커뮤니티</div><div class="mock-card-text">피어 매칭 + AI 시드 답변</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s4" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>API</th><th>결과</th></tr></thead><tbody>
+          <tr><td>CTA 클릭</td><td>-</td><td>goto:slide-5 (진단)</td></tr>
+          <tr><td>로그인 클릭</td><td>-</td><td>goto:slide-6</td></tr>
+        </tbody></table>
+      </div></details>
+      <details class="panel-section" name="panel-s4"><summary class="panel-section-header">View Model</summary><div class="panel-section-body">
+        <ul class="vm-tree"><li class="vm-node"><span class="vm-key">featureCards</span><span class="vm-type">Card[]</span></li>
+        <li class="vm-node"><span class="vm-key">heroText</span><span class="vm-type">string</span></li></ul>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: onboarding (PUBLIC) -->
+<!-- ============================================================ -->
+
+<!-- Slide 5: Diagnostic test -->
+<section class="slide sb-slide" data-role="PUBLIC" data-id="05" data-set="onboarding" id="slide-5">
+  <header class="slide-header"><span class="header-title">DevPath AI | PUBLIC</span><span class="header-screen-id">비회원 진단 테스트</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-post">POST</span> /api/diag/answer</span>
+    <span class="badge badge-template">DiagnosticTest.tsx</span>
+    <span class="badge badge-access">PUBLIC</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/diagnostic</div></div>
+        <div class="mock-browser-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:10px;font-weight:700;color:var(--color-text-bright)">진단 테스트</span>
+            <span style="font-size:8px;color:var(--color-text-dim)">3/15</span>
+          </div>
+          <div class="progress-indicator"><div class="progress-indicator-fill" style="width:20%"></div></div>
+          <div class="mock-card" style="padding:8px">
+            <div style="font-size:9px;font-weight:600;color:var(--color-text-bright);margin-bottom:6px">Q3. JPA의 N+1 문제 해결 방법은?</div>
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <div class="mock-card" style="padding:4px 8px;cursor:pointer" data-action="toast:보기 선택됨"><span style="font-size:8px">A. @BatchSize 설정</span></div>
+              <div class="mock-card" style="padding:4px 8px;border-color:#3fb950;cursor:pointer"><span style="font-size:8px;color:#3fb950">B. Fetch Join 사용 <span class="check-selected">&#10003;</span></span></div>
+              <div class="mock-card" style="padding:4px 8px;cursor:pointer" data-action="toast:보기 선택됨"><span style="font-size:8px">C. Lazy Loading 해제</span></div>
+              <div class="mock-card" style="padding:4px 8px;cursor:pointer" data-action="toast:보기 선택됨"><span style="font-size:8px">D. 캐시 적용</span></div>
+            </div>
+          </div>
+          <div class="mock-btn-group" style="margin-top:6px;justify-content:space-between">
+            <span class="mock-btn mock-btn-outline" data-action="toast:이전 문항으로">&larr; 이전</span>
+            <span class="mock-btn mock-btn-primary" data-action="toast:14/15 답안 저장됨">다음 문항 &rarr;</span>
+          </div>
+          <div style="text-align:center;margin-top:6px">
+            <span class="mock-btn mock-btn-primary" style="background:#f59e0b;padding:4px 14px;font-size:9px" data-action="goto:slide-6">진단 완료</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s5" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>API</th><th>결과</th></tr></thead><tbody>
+          <tr><td>보기 선택</td><td><span class="method-badge post">POST</span> <code>/api/diag/answer</code></td><td>선택 표시</td></tr>
+          <tr><td>다음 문항</td><td>-</td><td>toast + 진행 바 업데이트</td></tr>
+          <tr><td>진단 완료</td><td>-</td><td>goto:slide-6</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 6: Login gate -->
+<section class="slide sb-slide" data-role="PUBLIC" data-id="06" data-set="onboarding" id="slide-6">
+  <header class="slide-header"><span class="header-title">DevPath AI | PUBLIC</span><span class="header-screen-id">진단 결과 게이트</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /diagnostic/result</span>
+    <span class="badge badge-template">DiagResultGate.tsx</span>
+    <span class="badge badge-access">PUBLIC</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/diagnostic/result</div></div>
+        <div class="mock-browser-body">
+          <div style="text-align:center;margin-bottom:6px">
+            <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:4px">진단 결과 미리보기</div>
+            <div class="blur-overlay" style="background:var(--color-surface);border-radius:50%;width:100px;height:100px;margin:0 auto;display:flex;align-items:center;justify-content:center">
+              <svg width="80" height="80" viewBox="0 0 80 80"><polygon points="40,10 65,30 58,58 22,58 15,30" fill="none" stroke="#3fb950" stroke-width="1.5"/><polygon points="40,20 55,32 50,50 30,50 25,32" fill="rgba(63,185,80,0.2)" stroke="#3fb950"/></svg>
+            </div>
+            <div style="font-size:9px;color:var(--color-text-dim);margin-top:4px">결과를 확인하려면 로그인하세요</div>
+          </div>
+          <div style="max-width:140px;margin:0 auto">
+            <div class="oauth-btn" style="background:#24292e;color:#fff;cursor:pointer" data-action="goto:slide-7">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="#fff"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+              GitHub 로그인
+            </div>
+            <div class="oauth-btn" style="cursor:pointer" data-action="toast:Google OAuth 준비 중">
+              <span style="font-size:10px">G</span> Google 로그인
+            </div>
+            <div class="oauth-btn" style="background:#FEE500;color:#191919;cursor:pointer" data-action="toast:카카오 OAuth 준비 중">
+              <span style="font-size:10px">K</span> 카카오 로그인
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s6" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>GitHub 로그인</td><td>goto:slide-7 (OAuth)</td></tr>
+          <tr><td>Google/카카오</td><td>toast "준비 중"</td></tr>
+        </tbody></table>
+      </div></details>
+      <details class="panel-section" name="panel-s6"><summary class="panel-section-header">설계 의도</summary><div class="panel-section-body">
+        <p>비회원이 진단까지 마치고 결과를 보려면 로그인해야 하는 전환 지점. 블러 처리된 결과로 호기심 유발.</p>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 7: OAuth -->
+<section class="slide sb-slide" data-role="PUBLIC" data-id="07" data-set="onboarding" id="slide-7">
+  <header class="slide-header"><span class="header-title">DevPath AI | PUBLIC</span><span class="header-screen-id">OAuth2 인증</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /oauth2/authorize/github</span>
+    <span class="badge badge-template">OAuthCallback.tsx</span>
+    <span class="badge badge-access">PUBLIC</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">github.com/login/oauth/authorize</div></div>
+        <div class="mock-browser-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px">
+          <div class="spinner" style="margin-bottom:8px"></div>
+          <div style="font-size:10px;font-weight:600;color:var(--color-text-bright)">GitHub 계정으로 인증 중...</div>
+          <div style="font-size:8px;color:var(--color-text-dim);margin-top:4px">DevPath AI에 다음 권한을 허용합니다:</div>
+          <div style="margin:6px 0;text-align:left;font-size:8px">
+            <div>&#10003; 프로필 정보 읽기</div>
+            <div>&#10003; 리포지토리 목록 읽기</div>
+            <div>&#10003; 커밋 이력 읽기</div>
+          </div>
+          <span class="mock-btn mock-btn-primary" style="padding:5px 20px;font-size:10px;background:#238636" data-action="goto:slide-8">인증 완료</span>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s7" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>API</th><th>결과</th></tr></thead><tbody>
+          <tr><td>인증 완료</td><td><span class="method-badge post">POST</span> <code>/api/auth/callback</code></td><td>goto:slide-8</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: profile-setup (LEARNER) -->
+<!-- ============================================================ -->
+
+<!-- Slide 8: Profile setup -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="08" data-set="profile-setup" id="slide-8">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-ONB-001</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-post">POST</span> /api/profile</span>
+    <span class="badge badge-template">ProfileSetup.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/onboarding/profile</div></div>
+        <div class="mock-browser-body">
+          <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:6px">학습 프로필 설정</div>
+          <div class="mock-form-group">
+            <label class="mock-form-label">트랙 선택</label>
+            <div style="display:flex;gap:4px">
+              <span class="profile-chip selected">Spring Boot</span>
+              <span class="profile-chip">Node.js</span>
+            </div>
+          </div>
+          <div class="mock-form-group">
+            <label class="mock-form-label">학습 목표</label>
+            <div style="display:flex;gap:4px">
+              <span class="profile-chip selected">취업 준비</span>
+              <span class="profile-chip">이직</span>
+              <span class="profile-chip">스킬업</span>
+            </div>
+          </div>
+          <div class="mock-form-group">
+            <label class="mock-form-label">주당 학습 시간</label>
+            <div style="display:flex;gap:4px">
+              <span class="profile-chip">5시간</span>
+              <span class="profile-chip selected">10시간</span>
+              <span class="profile-chip">15시간+</span>
+            </div>
+          </div>
+          <div style="text-align:right;margin-top:8px">
+            <span class="mock-btn mock-btn-primary" style="padding:4px 16px;font-size:9px" data-action="goto:slide-9">다음 &rarr;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s8" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>API</th><th>결과</th></tr></thead><tbody>
+          <tr><td>다음</td><td><span class="method-badge post">POST</span> <code>/api/profile</code></td><td>goto:slide-9</td></tr>
+        </tbody></table>
+      </div></details>
+      <details class="panel-section" name="panel-s8"><summary class="panel-section-header">View Model</summary><div class="panel-section-body">
+        <ul class="vm-tree">
+          <li class="vm-node"><span class="vm-key">track</span><span class="vm-type">enum</span></li>
+          <li class="vm-node"><span class="vm-key">goal</span><span class="vm-type">enum</span></li>
+          <li class="vm-node"><span class="vm-key">weeklyHours</span><span class="vm-type">int</span></li>
+        </ul>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 9: GitHub analysis -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="09" data-set="profile-setup" id="slide-9">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-ONB-003</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-post">POST</span> /api/github/analyze</span>
+    <span class="badge badge-template">GitHubAnalysis.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/onboarding/analysis</div></div>
+        <div class="mock-browser-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px">
+          <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:8px">GitHub 프로필 분석</div>
+          <div class="loading-bar" style="width:80%"></div>
+          <div style="font-size:8px;color:var(--color-text-dim);margin-bottom:8px">리포지토리 12개 분석 중...</div>
+          <div style="font-size:8px;color:var(--color-text-bright);margin-bottom:4px">발견된 기술:</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-bottom:10px">
+            <span class="tag tag-blue" style="font-size:9px">Java</span>
+            <span class="tag tag-green" style="font-size:9px">Spring</span>
+            <span class="tag tag-purple" style="font-size:9px">JPA</span>
+            <span class="tag tag-yellow" style="font-size:9px">Docker</span>
+          </div>
+          <span class="mock-btn mock-btn-primary" style="padding:5px 18px;font-size:10px" data-action="goto:slide-10">분석 완료! 학습 경로 생성하기 &rarr;</span>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s9" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>API</th><th>결과</th></tr></thead><tbody>
+          <tr><td>분석 완료</td><td><span class="method-badge post">POST</span> <code>/api/path/generate</code></td><td>goto:slide-10</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: first-aha (LEARNER) -->
+<!-- ============================================================ -->
+
+<!-- Slide 10: 1st Aha -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="10" data-set="first-aha" id="slide-10">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-PATH-001</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/path/roadmap</span>
+    <span class="badge badge-template">Roadmap.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/path/roadmap</div></div>
+        <div class="mock-browser-body">
+          <div class="sse-progress" style="margin-bottom:4px">
+            <div class="sse-line done">&#10003; 진단 결과 분석 완료</div>
+            <div class="sse-line done">&#10003; GitHub 기술 스택 반영</div>
+            <div class="sse-line done">&#10003; 12주 로드맵 설계 완료</div>
+          </div>
+          <div style="font-size:9px;font-weight:700;color:var(--color-text-bright);margin-bottom:4px">12주 커리큘럼</div>
+          <div class="week-card"><div class="week-card-title">Week 1: Spring 기초 복습</div><div style="font-size:7px;color:var(--color-text-dim)">IoC, DI, AOP 핵심 개념</div></div>
+          <div class="week-card"><div class="week-card-title">Week 2: JPA 입문</div><div style="font-size:7px;color:var(--color-text-dim)">엔티티 매핑, 연관관계</div></div>
+          <div class="week-card" style="border-color:#3fb950"><div class="week-card-title" style="color:#3fb950">Week 3: JPA 심화 (현재)</div><div style="font-size:7px;color:var(--color-text-dim)">N+1, Fetch Join, QueryDSL</div></div>
+          <div class="aha-badge">1st Aha Moment -- 당신만의 학습 경로가 생성되었습니다!</div>
+          <div style="text-align:right;margin-top:4px">
+            <span class="mock-btn mock-btn-primary" style="padding:4px 14px;font-size:9px" data-action="goto:slide-11">이번 주 과제 보기 &rarr;</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s10" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>이번 주 과제 보기</td><td>goto:slide-11</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 11: Weekly tasks -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="11" data-set="first-aha" id="slide-11">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-PATH-002</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/path/week/3</span>
+    <span class="badge badge-template">WeekDetail.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/path/week/3</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar"><span class="mock-navbar-brand">DevPath AI</span><div class="mock-navbar-links"><span class="active">학습 경로</span><span data-action="goto:slide-17">커뮤니티</span><span data-action="goto:slide-25">대시보드</span></div></div>
+          <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:6px">Week 3: JPA 심화</div>
+          <div class="mock-card" style="cursor:pointer" data-action="goto:slide-12">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><span style="font-size:9px">&#128214;</span> <span class="mock-card-title">JPA 페치 전략</span></div>
+              <span class="mock-status mock-status-doing">20분</span>
+            </div>
+            <div class="mock-card-text">읽기 자료 | Lazy vs Eager, Fetch Join</div>
+          </div>
+          <div class="mock-card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><span style="font-size:9px">&#128295;</span> <span class="mock-card-title">N+1 해결 실습</span></div>
+              <span class="mock-status mock-status-todo">30분</span>
+            </div>
+            <div class="mock-card-text">실습 과제 | Sandbox 코드 작성</div>
+          </div>
+          <div class="mock-card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><span style="font-size:9px">&#128214;</span> <span class="mock-card-title">QueryDSL 기초</span></div>
+              <span class="mock-status mock-status-todo">25분</span>
+            </div>
+            <div class="mock-card-text">읽기 자료 | 동적 쿼리 작성</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s11" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>과제 카드 클릭</td><td>goto:slide-12 (콘텐츠 뷰어)</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: learning (LEARNER) -->
+<!-- ============================================================ -->
+
+<!-- Slide 12: Content viewer -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="12" data-set="learning" id="slide-12">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-CNT-001</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/content/{id}</span>
+    <span class="badge badge-template">ContentViewer.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/content/jpa-fetch</div></div>
+        <div class="mock-browser-body" style="display:flex;gap:0;padding:0">
+          <div class="sidebar-toc">
+            <div style="font-size:8px;font-weight:700;color:var(--color-text-bright);padding:4px;border-bottom:1px solid var(--color-border)">목차</div>
+            <div class="sidebar-toc-item">1. 기본 개념</div>
+            <div class="sidebar-toc-item active">2. Lazy vs Eager</div>
+            <div class="sidebar-toc-item">3. Fetch Join</div>
+            <div class="sidebar-toc-item">4. 실습</div>
+          </div>
+          <div style="flex:1;padding:6px;overflow:hidden">
+            <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:4px">2. Lazy vs Eager Loading</div>
+            <div style="font-size:8px;color:var(--color-text);line-height:1.5;margin-bottom:4px">JPA는 연관 엔티티를 로딩하는 두 가지 전략을 제공합니다.</div>
+            <div class="code-block">
+<span class="code-comment">// Lazy Loading (기본)</span>
+<span class="code-type">@ManyToOne</span>(fetch = FetchType.<span class="code-keyword">LAZY</span>)
+<span class="code-keyword">private</span> Team team;
+
+<span class="code-comment">// Fetch Join으로 N+1 해결</span>
+<span class="code-type">@Query</span>(<span class="code-string">"SELECT m FROM Member m JOIN FETCH m.team"</span>)
+List&lt;Member&gt; findAllWithTeam();
+            </div>
+            <div class="progress-indicator" style="margin-top:6px"><div class="progress-indicator-fill" style="width:80%"></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:7px;color:var(--color-text-dim)">80% 완료</span>
+              <span class="mock-btn mock-btn-primary" style="font-size:8px" data-action="goto:slide-13">실습 과제 시작 &rarr;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s12" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>실습 과제 시작</td><td>goto:slide-13</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 13: Sandbox -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="13" data-set="learning" id="slide-13">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-SBX-001</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-post">POST</span> /api/sandbox/run</span>
+    <span class="badge badge-template">SandboxRunner.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/sandbox/jpa-n1</div></div>
+        <div class="mock-browser-body" style="display:flex;gap:0;padding:0">
+          <div style="flex:1;padding:4px;background:#0d1117">
+            <div style="font-size:7px;color:var(--color-text-dim);padding:2px;border-bottom:1px solid var(--color-border)">MemberRepository.java</div>
+            <div class="code-block" style="border:none;font-size:7px;line-height:1.6">
+<span class="code-type">@Repository</span>
+<span class="code-keyword">public interface</span> <span class="code-type">MemberRepo</span> {
+
+  <span class="code-type">@Query</span>(<span class="code-string">"SELECT m FROM Member m"</span>
+       + <span class="code-string">" JOIN FETCH m.team"</span>)
+  List&lt;Member&gt; findWithTeam();
+}
+            </div>
+          </div>
+          <div style="width:38%;border-left:1px solid var(--color-border);padding:4px;font-size:8px">
+            <div style="font-weight:600;color:var(--color-text-bright);margin-bottom:4px">테스트 결과</div>
+            <div style="color:#3fb950;margin-bottom:2px">&#10003; test1 PASS</div>
+            <div style="color:#f87171;margin-bottom:2px">&#10007; test2 FAIL</div>
+            <div style="color:var(--color-text-dim);margin-bottom:6px">&#9744; test3 대기</div>
+            <div style="display:flex;gap:4px">
+              <span class="mock-btn mock-btn-outline" data-action="toast:컴파일 중...">실행</span>
+              <span class="mock-btn mock-btn-primary" data-action="toast-goto:코드 제출됨 -- AI 리뷰 생성 중:slide-14:2000">제출</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s13" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>API</th><th>결과</th></tr></thead><tbody>
+          <tr><td>실행</td><td><span class="method-badge post">POST</span> <code>/api/sandbox/run</code></td><td>toast</td></tr>
+          <tr><td>제출</td><td><span class="method-badge post">POST</span> <code>/api/sandbox/submit</code></td><td>toast-goto:slide-14</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 14: AI Code Review (2nd Aha) -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="14" data-set="learning" id="slide-14">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-REV-001</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/review/{submissionId}</span>
+    <span class="badge badge-template">AIReview.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/review/1201</div></div>
+        <div class="mock-browser-body">
+          <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:4px">AI 코드 리뷰 결과</div>
+          <div style="font-size:8px;color:var(--color-text-dim);margin-bottom:4px">전반적으로 깔끔한 구현. JPA fetch 전략 개선 여지 있음.</div>
+          <div class="review-item"><span class="review-icon" style="color:#3fb950">&#10003;</span><div><span style="color:var(--color-text-bright);font-weight:600">Strengths</span><br><span style="font-size:7px">Repository 계층 분리 명확, 테스트 커버리지 높음</span></div></div>
+          <div class="review-item"><span class="review-icon" style="color:#f59e0b">&#9888;</span><div><span style="color:var(--color-text-bright);font-weight:600">Improvements</span><br><span style="font-size:7px">line 42: LazyInitializationException 가능성<br>line 67: 변수명 개선 권장</span></div></div>
+          <div class="aha-badge">2nd Aha Moment -- 실무급 AI 코드 리뷰!</div>
+          <div style="display:flex;gap:4px;margin-top:4px;align-items:center">
+            <span class="mock-btn mock-btn-outline" data-action="toast:피드백 감사합니다!">&#128077;</span>
+            <span class="mock-btn mock-btn-primary" data-action="goto:slide-15">AI 멘토에게 질문하기</span>
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-17">커뮤니티에서 질문하기</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s14" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>&#128077; 클릭</td><td>toast "피드백 감사합니다!"</td></tr>
+          <tr><td>AI 멘토에게 질문하기</td><td>goto:slide-15</td></tr>
+          <tr><td>커뮤니티에서 질문하기</td><td>goto:slide-17</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: mentor (LEARNER) -->
+<!-- ============================================================ -->
+
+<!-- Slide 15: AI Mentor Chat -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="15" data-set="mentor" id="slide-15">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-MEN-001</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-post">POST</span> /api/mentor/chat</span>
+    <span class="badge badge-template">MentorChat.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/mentor</div></div>
+        <div class="mock-browser-body" style="display:flex;flex-direction:column;height:100%">
+          <div class="chat-bubble chat-system" style="margin-bottom:4px">현재 컨텍스트: JPA 페치 전략 (Week 3) + 최근 과제 testFetchJoin 실패</div>
+          <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;gap:3px">
+            <div class="chat-bubble chat-user">N+1이 왜 발생해?</div>
+            <div class="chat-bubble chat-ai">N+1은 연관 엔티티를 개별 쿼리로 조회할 때 발생합니다. 당신의 제출 #1201에서 <code style="font-size:7px;color:#7dd3fc">findAll()</code>이 Member를 조회한 후, 각 Member의 team에 접근할 때 추가 쿼리가 발생했습니다.</div>
+            <div class="chat-bubble chat-ai">해결: <code style="font-size:7px;color:#7dd3fc">JOIN FETCH</code>를 사용하면 한 번의 쿼리로 해결됩니다.</div>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <input class="sim-input" placeholder="질문을 입력하세요..." style="flex:1">
+            <span class="mock-btn mock-btn-primary" data-action="toast:AI가 응답 중...">전송</span>
+          </div>
+          <div class="mock-btn-group" style="margin-top:4px">
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-17">커뮤니티에 질문</span>
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-25">대시보드로</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s15" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>전송</td><td>toast "AI가 응답 중..."</td></tr>
+          <tr><td>커뮤니티에 질문</td><td>goto:slide-17</td></tr>
+          <tr><td>대시보드로</td><td>goto:slide-25</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: community (LEARNER) -->
+<!-- ============================================================ -->
+
+<!-- Slide 16: Peer matching -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="16" data-set="community" id="slide-16">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-COM-008</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/peers</span>
+    <span class="badge badge-template">PeerMatch.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/community/peers</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar"><span class="mock-navbar-brand">DevPath AI</span><div class="mock-navbar-links"><span data-action="goto:slide-11">학습</span><span class="active">커뮤니티</span><span data-action="goto:slide-25">대시보드</span></div></div>
+          <div style="font-size:9px;font-weight:600;color:var(--color-text-bright);margin-bottom:4px">같은 Week 3 학습 중인 23명</div>
+          <div class="mock-card"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="mock-card-title">민수</span><span style="font-size:7px;color:var(--color-text-dim)"> | Spring Boot</span></div><span class="mock-status mock-status-doing">진척 75%</span></div><div class="mock-card-text">최근: N+1 실습 완료</div></div>
+          <div class="mock-card"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="mock-card-title">유진</span><span style="font-size:7px;color:var(--color-text-dim)"> | Spring Boot</span></div><span class="mock-status mock-status-doing">진척 60%</span></div><div class="mock-card-text">최근: Fetch Join 학습 중</div></div>
+          <div class="mock-card"><div style="display:flex;justify-content:space-between;align-items:center"><div><span class="mock-card-title">현우</span><span style="font-size:7px;color:var(--color-text-dim)"> | Spring Boot</span></div><span class="mock-status mock-status-done">진척 90%</span></div><div class="mock-card-text">최근: QueryDSL 실습 완료</div></div>
+          <div class="mock-btn-group">
+            <span class="mock-btn mock-btn-primary" data-action="goto:slide-20">이 친구에게 질문하기</span>
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-17">커뮤니티 홈</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s16" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>질문하기</td><td>goto:slide-20</td></tr>
+          <tr><td>커뮤니티 홈</td><td>goto:slide-17</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 17: Community home -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="17" data-set="community" id="slide-17">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-COM-001</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/community</span>
+    <span class="badge badge-template">CommunityHome.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/community</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar"><span class="mock-navbar-brand">DevPath AI</span><div class="mock-navbar-links"><span data-action="goto:slide-11">학습</span><span class="active">커뮤니티</span><span data-action="goto:slide-25">대시보드</span></div></div>
+          <div class="sim-tabs">
+            <span class="sim-tab sim-tab-active" data-action="goto:slide-18">Q&A</span>
+            <span class="sim-tab" data-action="goto:slide-22">자유</span>
+            <span class="sim-tab" data-action="goto:slide-23">프로젝트</span>
+            <span class="sim-tab" style="color:#484d54;cursor:not-allowed;opacity:.5" title="Phase 2">스터디-P2</span>
+            <span class="sim-tab" style="color:#484d54;cursor:not-allowed;opacity:.5" title="Phase 2">수료자-P2</span>
+          </div>
+          <div style="font-size:7px;color:var(--color-text-dim);margin-bottom:4px;background:rgba(63,185,80,.06);padding:2px 6px;border-radius:3px">같은 주 학습 중인 <span style="color:#3fb950;font-weight:700">23명</span>이 커뮤니티에 참여하고 있어요</div>
+          <div class="mock-card" style="border-color:#f59e0b">
+            <div class="mock-card-title" style="color:#f59e0b">&#128276; 답변 기다리는 질문 3개</div>
+            <div class="mock-card-text">최근 미답변 질문에 도움을 줄 수 있습니다</div>
+          </div>
+          <div class="mock-card" data-action="goto:slide-19" style="cursor:pointer"><div class="mock-card-title">JPA fetch join 페이징 경고?</div><div class="mock-card-text">&#8593;12 &#183; 답변 3 &#183; 2시간 전</div></div>
+          <div class="mock-card" data-action="goto:slide-19" style="cursor:pointer"><div class="mock-card-title">N+1 해결 방법?</div><div class="mock-card-text">&#8593;8 &#183; 답변 2 &#183; 5시간 전</div></div>
+          <div style="text-align:right;margin-top:4px"><span class="mock-btn mock-btn-primary" data-action="goto:slide-20">질문하기 +</span></div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s17" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>Q&A 탭</td><td>goto:slide-18</td></tr>
+          <tr><td>자유 탭</td><td>goto:slide-22</td></tr>
+          <tr><td>프로젝트 탭</td><td>goto:slide-23</td></tr>
+          <tr><td>질문하기</td><td>goto:slide-20</td></tr>
+          <tr><td>게시글 클릭</td><td>goto:slide-19</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 18: Q&A list -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="18" data-set="community" id="slide-18">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-COM-002</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/community/qna</span>
+    <span class="badge badge-template">QnAList.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/community/qna</div></div>
+        <div class="mock-browser-body">
+          <div style="display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap">
+            <span class="tag tag-blue" style="font-size:8px;cursor:pointer">jpa</span>
+            <span class="tag tag-green" style="font-size:8px;cursor:pointer">spring</span>
+            <span class="tag tag-yellow" style="font-size:8px;cursor:pointer">docker</span>
+            <select class="sim-select" style="margin-left:auto"><option>최신</option><option>투표</option><option>미답변</option></select>
+          </div>
+          <table class="mock-table">
+            <thead><tr><th>투표</th><th>질문</th><th>답변</th></tr></thead>
+            <tbody>
+              <tr data-action="goto:slide-19"><td style="color:#3fb950">&#8593;12</td><td style="color:#58a6ff">JPA fetch join 페이징 경고?</td><td>3</td></tr>
+              <tr data-action="goto:slide-19"><td style="color:#3fb950">&#8593;8</td><td style="color:#58a6ff">N+1 해결 방법?</td><td>2</td></tr>
+              <tr data-action="goto:slide-19"><td style="color:var(--color-text-dim)">&#8593;5</td><td style="color:#58a6ff">QueryDSL 서브쿼리?</td><td style="color:#f59e0b">0</td></tr>
+            </tbody>
+          </table>
+          <div class="mock-btn-group" style="margin-top:6px">
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-17">&larr; 커뮤니티 홈</span>
+            <span class="mock-btn mock-btn-primary" data-action="goto:slide-20">질문하기 +</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s18" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>질문 행 클릭</td><td>goto:slide-19</td></tr>
+          <tr><td>질문하기</td><td>goto:slide-20</td></tr>
+          <tr><td>커뮤니티 홈</td><td>goto:slide-17</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 19: Q&A detail (v4.0 — CEO review decisions applied) -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="19" data-set="community" id="slide-19">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-COM-003</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/community/qna/{id}</span>
+    <span class="badge badge-template">QnADetail.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/community/qna/42</div></div>
+        <div class="mock-browser-body" style="overflow-y:auto;max-height:100%">
+          <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:2px">JPA fetch join으로 페이징하면 경고가 뜨는 이유?</div>
+          <div style="display:flex;gap:8px;font-size:7px;color:var(--color-text-dim);margin-bottom:4px;align-items:center">
+            <span>&#8593;12</span><span>&#183;</span>
+            <span class="tag tag-blue" style="font-size:7px;padding:1px 4px">jpa</span>
+          </div>
+          <!-- Learning context card (visible to answerers) -->
+          <div class="mock-card" style="font-size:7px;background:rgba(63,185,80,.05);border-color:rgba(63,185,80,.3);margin-bottom:4px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:8px;font-weight:600;color:#3fb950">학습 맥락</span><span style="font-size:6px;color:var(--color-text-dim)">답변자만 볼 수 있음</span></div>
+            <div class="mock-card-text" style="color:var(--color-text);margin-top:2px">Week 3 &#183; JPA 심화 &#183; 진척 80%<br>학습 경로: 3개월 백엔드 로드맵 (3/12 단계)<br>레벨: junior &#183; 최근 에러: LazyInitializationException</div>
+          </div>
+          <div style="font-size:8px;color:var(--color-text);margin-bottom:4px;line-height:1.4">fetch join과 페이징을 함께 사용하면 HHH000104 경고가 발생합니다. 이유가 무엇인가요?</div>
+          <!-- Human answer (ABOVE AI, visually prominent) -->
+          <div class="mock-card" style="border-color:#3fb950">
+            <div style="display:flex;justify-content:space-between;align-items:center"><div><span class="mock-card-title">현우</span> <span style="font-size:7px;background:rgba(245,158,11,.15);color:#F59E0B;padding:1px 5px;border-radius:8px;font-weight:600">320</span></div><span class="mock-btn mock-btn-outline" style="font-size:7px" data-action="toast:답변이 채택되었습니다 (+15 평판)">채택</span></div>
+            <div class="mock-card-text">@EntityGraph를 사용하면 서브쿼리로 분리되어 페이징이 정상 동작합니다. attributePaths에 연관 필드를 지정하세요.</div>
+          </div>
+          <!-- Escalation buttons -->
+          <div style="display:flex;gap:4px;margin-bottom:4px">
+            <span class="mock-btn" style="background:rgba(63,185,80,.15);color:#3fb950;border-color:#3fb950;font-size:7px" data-action="toast:피드백 감사합니다!">&#128077; 도움됐어요</span>
+            <span class="mock-btn" style="background:rgba(248,113,113,.1);color:#f87171;border-color:#f87171;font-size:7px" data-action="goto:slide-34">부족해요, 커뮤니티에 물어볼래요</span>
+          </div>
+          <!-- AI seed answer: COLLAPSED accordion at BOTTOM -->
+          <details style="border:1px solid var(--color-border);border-radius:4px;background:#161b22">
+            <summary style="font-size:8px;color:var(--color-text-dim);padding:4px 6px;cursor:pointer;user-select:none">&#129302; AI 초안 보기</summary>
+            <div style="font-size:8px;color:var(--color-text-dim);padding:4px 6px;background:rgba(255,255,255,.02);border-top:1px solid var(--color-border);line-height:1.4">fetch join과 페이징을 함께 사용하면 Hibernate는 메모리에서 페이징을 수행합니다. 대안: BatchSize + 일반 페이징, 또는 서브쿼리 분리.<br><span style="font-size:7px;color:var(--color-text-dim);font-style:italic">인간 답변자의 실무 경험이 더 정확할 수 있습니다.</span></div>
+          </details>
+          <div class="mock-btn-group" style="margin-top:4px">
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-18">&larr; 목록</span>
+            <span class="mock-btn mock-btn-primary" data-action="goto:slide-20">나도 질문하기</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s19" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>API</th><th>결과</th></tr></thead><tbody>
+          <tr><td>채택</td><td><span class="method-badge post">POST</span> <code>/api/community/qna/{id}/accept</code></td><td>toast "+15 평판"</td></tr>
+          <tr><td>도움됐어요</td><td><span class="method-badge post">POST</span> <code>/api/community/qna/{id}/helpful</code></td><td>toast 피드백</td></tr>
+          <tr><td>부족해요</td><td>-</td><td>goto:slide-34 (에스컬레이션)</td></tr>
+          <tr><td>목록</td><td>-</td><td>goto:slide-18</td></tr>
+          <tr><td>나도 질문하기</td><td>-</td><td>goto:slide-20</td></tr>
+        </tbody></table>
+      </div></details>
+      <details class="panel-section" name="panel-s19"><summary class="panel-section-header">View Model</summary><div class="panel-section-body">
+        <ul class="vm-tree">
+          <li class="vm-node"><span class="vm-key">question</span><span class="vm-type">Question</span></li>
+          <li class="vm-node"><span class="vm-key">humanAnswers</span><span class="vm-type">Answer[]</span></li>
+          <li class="vm-node"><span class="vm-key">aiSeedAnswer</span><span class="vm-type">AISeed</span></li>
+          <li class="vm-node"><span class="vm-key">learningContext</span><span class="vm-type">LearningContextSnapshot</span></li>
+          <li class="vm-node"><span class="vm-key">escalationStatus</span><span class="vm-type">enum</span></li>
+        </ul>
+      </div></details>
+      <details class="panel-section" name="panel-s19"><summary class="panel-section-header">설계 의도</summary><div class="panel-section-body">
+        <p style="font-size:10px">AI 시드는 접힘 기본(accordion). 인간 답변이 시각적으로 더 강조됨. 답변자 평판은 amber(#F59E0B) 배지. 에스컬레이션 버튼으로 커뮤니티 확대 가능.</p>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 20: Q&A write (v4.0 — context toggle, quality checklist, AI score) -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="20" data-set="community" id="slide-20">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-COM-004</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-post">POST</span> /api/community/qna</span>
+    <span class="badge badge-template">QnAWrite.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/community/qna/new</div></div>
+        <div class="mock-browser-body" style="overflow-y:auto;max-height:100%">
+          <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:4px">질문 작성</div>
+          <div class="mock-form-group">
+            <label class="mock-form-label">제목 *</label>
+            <input class="sim-input" required placeholder="질문 제목을 입력하세요">
+            <div class="sim-error-msg">필수 항목입니다</div>
+          </div>
+          <div class="mock-form-group">
+            <label class="mock-form-label">본문</label>
+            <textarea class="sim-textarea" placeholder="질문 내용을 자세히 작성하세요" style="min-height:24px"></textarea>
+          </div>
+          <div class="mock-form-group">
+            <label class="mock-form-label">태그</label>
+            <div style="display:flex;gap:4px">
+              <span class="tag tag-blue" style="font-size:8px">jpa</span>
+              <span class="tag tag-green" style="font-size:8px">spring-data</span>
+            </div>
+          </div>
+          <!-- Quality checklist -->
+          <div style="font-size:7px;color:var(--color-text-dim);margin-bottom:3px;font-weight:600">품질 체크리스트</div>
+          <div style="font-size:7px;color:var(--color-text-dim);display:flex;flex-direction:column;gap:1px;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" style="width:8px;height:8px"> 시도한 방법을 작성했나요?</label>
+            <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" checked style="width:8px;height:8px"> 에러 메시지를 포함했나요?</label>
+            <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" style="width:8px;height:8px"> 재현 코드를 첨부했나요?</label>
+          </div>
+          <!-- Learning context toggle with individual checkboxes -->
+          <div style="font-size:7px;font-weight:600;color:var(--color-text-dim);margin-bottom:2px">학습 맥락 첨부</div>
+          <div style="font-size:7px;color:var(--color-text-dim);display:flex;flex-direction:column;gap:1px;margin-bottom:2px">
+            <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" checked style="width:8px;height:8px"> 현재 콘텐츠</label>
+            <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" checked style="width:8px;height:8px"> 학습 경로</label>
+            <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" checked style="width:8px;height:8px"> 내 레벨</label>
+            <label style="display:flex;align-items:center;gap:3px"><input type="checkbox" style="width:8px;height:8px"> 최근 에러</label>
+          </div>
+          <!-- Privacy scope selector -->
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;font-size:7px">
+            <span style="color:var(--color-text-dim)">공개 범위:</span>
+            <label style="display:flex;align-items:center;gap:2px;color:var(--color-text)"><input type="radio" name="scope-s20" checked style="width:8px;height:8px"> 답변자만</label>
+            <label style="display:flex;align-items:center;gap:2px;color:var(--color-text)"><input type="radio" name="scope-s20" style="width:8px;height:8px"> 공개</label>
+          </div>
+          <!-- Context preview (inline expansion) -->
+          <div class="sim-toggle-target" id="ctx-preview-s20">
+            <div class="mock-card" style="font-size:7px;background:rgba(63,185,80,.05);border-color:rgba(63,185,80,.3)">
+              <div class="mock-card-text" style="color:#3fb950">Week 3 &#183; JPA 심화 &#183; 진척 80%<br>경로: 3개월 백엔드 로드맵 (3/12)<br>레벨: junior</div>
+            </div>
+          </div>
+          <div style="margin-bottom:3px"><span class="mock-btn mock-btn-outline" style="font-size:7px" data-action="toggle:ctx-preview-s20">미리보기</span></div>
+          <!-- AI quality score area -->
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;font-size:7px;color:var(--color-text-dim)">
+            <span>AI 품질 스코어:</span>
+            <span style="background:rgba(63,185,80,.15);color:#3fb950;padding:1px 5px;border-radius:8px;font-weight:700">4/5</span>
+            <span style="color:var(--color-text-dim);font-size:6px">재현 코드 추가 시 5점 가능</span>
+          </div>
+          <div class="mock-btn-group" style="margin-top:2px">
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-18">취소</span>
+            <span class="mock-btn mock-btn-primary" data-action="toast-goto:질문 등록됨. AI 답변 생성 중...:slide-19:2500">질문 올리기</span>
+            <span class="mock-btn" style="background:var(--color-border);color:var(--color-text-dim);font-size:7px;cursor:not-allowed;opacity:.6" title="맥락 수집 완료 후 활성화">맥락 준비 중...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s20" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>API</th><th>결과</th></tr></thead><tbody>
+          <tr><td>질문 올리기</td><td><span class="method-badge post">POST</span> <code>/api/community/qna</code></td><td>toast-goto:slide-19 (2.5초)</td></tr>
+          <tr><td>미리보기</td><td>-</td><td>toggle 맥락 미리보기 (인라인)</td></tr>
+          <tr><td>취소</td><td>-</td><td>goto:slide-18</td></tr>
+        </tbody></table>
+      </div></details>
+      <details class="panel-section" name="panel-s20"><summary class="panel-section-header">View Model</summary><div class="panel-section-body">
+        <ul class="vm-tree">
+          <li class="vm-node"><span class="vm-key">title</span><span class="vm-type">string</span></li>
+          <li class="vm-node"><span class="vm-key">body</span><span class="vm-type">string</span></li>
+          <li class="vm-node"><span class="vm-key">tags</span><span class="vm-type">string[]</span></li>
+          <li class="vm-node"><span class="vm-key">contextToggles</span><span class="vm-type">{content,path,level,errors}</span></li>
+          <li class="vm-node"><span class="vm-key">privacyScope</span><span class="vm-type">enum(ANSWERER_ONLY|PUBLIC)</span></li>
+          <li class="vm-node"><span class="vm-key">aiQualityScore</span><span class="vm-type">int(1-5)</span></li>
+          <li class="vm-node"><span class="vm-key">isContextReady</span><span class="vm-type">boolean</span></li>
+        </ul>
+      </div></details>
+      <details class="panel-section" name="panel-s20"><summary class="panel-section-header">설계 의도</summary><div class="panel-section-body">
+        <p style="font-size:10px">맥락 수집 중 제출 비활성화(3초 후 탈출구). 개별 맥락 항목 on/off. 미리보기는 인라인 확장(모달 아님). AI 품질 스코어로 질문 개선 유도.</p>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 21: User profile (v4.0 — FC badge, amber reputation, permission progress) -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="21" data-set="community" id="slide-21">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-COM-007</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/user/profile</span>
+    <span class="badge badge-template">UserProfile.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/profile/jisoo</div></div>
+        <div class="mock-browser-body" style="overflow-y:auto;max-height:100%">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--role-color);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:700">J</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:4px"><span style="font-size:10px;font-weight:700;color:var(--color-text-bright)">지수</span><span style="font-size:7px;background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;padding:1px 6px;border-radius:8px;font-weight:700">Founding Contributor</span></div>
+              <div style="display:flex;align-items:center;gap:4px"><span style="font-size:9px;font-weight:700;color:#F59E0B">520</span><span style="font-size:7px;color:var(--color-text-dim)">총 평판</span></div>
+            </div>
+          </div>
+          <!-- Tag-based reputation breakdown -->
+          <div style="font-size:8px;font-weight:600;color:var(--color-text-bright);margin-bottom:2px">태그별 평판</div>
+          <div style="display:flex;gap:3px;margin-bottom:4px;flex-wrap:wrap">
+            <span style="font-size:7px;background:rgba(245,158,11,.12);color:#F59E0B;padding:1px 5px;border-radius:8px;font-weight:600">JPA 180</span>
+            <span style="font-size:7px;background:rgba(245,158,11,.12);color:#F59E0B;padding:1px 5px;border-radius:8px;font-weight:600">Spring 150</span>
+            <span style="font-size:7px;background:rgba(245,158,11,.08);color:#d29922;padding:1px 5px;border-radius:8px;font-weight:600">Docker 90</span>
+            <span style="font-size:7px;background:rgba(245,158,11,.06);color:#d29922;padding:1px 5px;border-radius:8px;font-weight:600">기타 100</span>
+          </div>
+          <!-- Permission unlock progress bar -->
+          <div style="font-size:8px;font-weight:600;color:var(--color-text-bright);margin-bottom:2px">권한 언락</div>
+          <div style="font-size:7px;color:var(--color-text-dim);margin-bottom:2px">다음 권한: 편집 제안 (1,000점)</div>
+          <div class="progress-indicator" style="margin-bottom:1px"><div class="progress-indicator-fill" style="width:52%;background:#F59E0B"></div></div>
+          <div style="font-size:6px;color:var(--color-text-dim);margin-bottom:4px;display:flex;justify-content:space-between"><span>520/1,000</span><span style="color:#3fb950">&#10003; 댓글 (50) &#10003; upvote (125) &#10003; 다운보트 (125)</span></div>
+          <!-- Badges -->
+          <div style="font-size:8px;font-weight:600;color:var(--color-text-bright);margin-bottom:2px">배지</div>
+          <div style="display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap">
+            <span style="font-size:7px;background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;padding:1px 6px;border-radius:6px;font-weight:600">FC</span>
+            <span style="font-size:7px">&#127941; 첫 질문</span>
+            <span style="font-size:7px">&#127941; 첫 채택</span>
+            <span style="font-size:7px">&#127941; 3일 연속</span>
+          </div>
+          <div style="font-size:8px;font-weight:600;color:var(--color-text-bright);margin-bottom:2px">최근 활동</div>
+          <div style="font-size:7px;color:var(--color-text-dim)">&#8226; N+1 해결 질문 등록 (2h ago)</div>
+          <div style="font-size:7px;color:var(--color-text-dim)">&#8226; JPA 심화 과제 제출 (5h ago)</div>
+          <div style="font-size:7px;color:var(--color-text-dim)">&#8226; Fetch Join 학습 완료 (1d ago)</div>
+          <div style="margin-top:4px"><span class="mock-btn mock-btn-primary" data-action="goto:slide-25">대시보드</span></div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s21" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>대시보드</td><td>goto:slide-25</td></tr>
+        </tbody></table>
+      </div></details>
+      <details class="panel-section" name="panel-s21"><summary class="panel-section-header">View Model</summary><div class="panel-section-body">
+        <ul class="vm-tree">
+          <li class="vm-node"><span class="vm-key">user</span><span class="vm-type">UserProfile</span></li>
+          <li class="vm-node"><span class="vm-key">reputation</span><span class="vm-type">int</span></li>
+          <li class="vm-node"><span class="vm-key">tagReputation</span><span class="vm-type">Map&lt;tag, int&gt;</span></li>
+          <li class="vm-node"><span class="vm-key">badges</span><span class="vm-type">Badge[]</span></li>
+          <li class="vm-node"><span class="vm-key">permissionProgress</span><span class="vm-type">{current, next, threshold}</span></li>
+          <li class="vm-node"><span class="vm-key">isFoundingContributor</span><span class="vm-type">boolean</span></li>
+        </ul>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 22: Free board -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="22" data-set="community" id="slide-22">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-COM-005</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/community/free</span>
+    <span class="badge badge-template">FreeBoard.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/community/free</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar"><span class="mock-navbar-brand">DevPath AI</span><div class="mock-navbar-links"><span data-action="goto:slide-18">Q&A</span><span class="active">자유</span><span data-action="goto:slide-23">프로젝트</span></div></div>
+          <table class="mock-table">
+            <thead><tr><th>제목</th><th>작성자</th><th>댓글</th><th>날짜</th></tr></thead>
+            <tbody>
+              <tr><td style="color:#58a6ff">Spring Boot 4 사용 후기</td><td>민수</td><td>5</td><td>04-28</td></tr>
+              <tr><td style="color:#58a6ff">백엔드 면접 팁 공유</td><td>유진</td><td>12</td><td>04-27</td></tr>
+              <tr><td style="color:#58a6ff">DevPath AI 학습 루틴 공유</td><td>현우</td><td>3</td><td>04-26</td></tr>
+            </tbody>
+          </table>
+          <div class="mock-btn-group" style="margin-top:6px">
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-17">&larr; 커뮤니티 홈</span>
+            <span class="mock-btn mock-btn-primary" data-action="toast:자유게시판 작성 화면">글쓰기</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s22" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>커뮤니티 홈</td><td>goto:slide-17</td></tr>
+          <tr><td>글쓰기</td><td>toast</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 23: Project share -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="23" data-set="community" id="slide-23">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-COM-006</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/community/projects</span>
+    <span class="badge badge-template">ProjectShare.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/community/projects</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar"><span class="mock-navbar-brand">DevPath AI</span><div class="mock-navbar-links"><span data-action="goto:slide-18">Q&A</span><span data-action="goto:slide-22">자유</span><span class="active">프로젝트</span></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <div class="mock-card"><div class="mock-card-title">Spring ToDo API</div><div class="mock-card-text">github.com/dev/todo-api</div><div style="display:flex;gap:2px;margin-top:2px"><span class="tag tag-blue" style="font-size:6px">Spring</span><span class="tag tag-green" style="font-size:6px">JPA</span></div><div style="font-size:7px;color:#f59e0b;margin-top:2px">&#9733; 24</div></div>
+            <div class="mock-card"><div class="mock-card-title">Event-Driven Shop</div><div class="mock-card-text">github.com/dev/shop</div><div style="display:flex;gap:2px;margin-top:2px"><span class="tag tag-purple" style="font-size:6px">Kafka</span><span class="tag tag-yellow" style="font-size:6px">Docker</span></div><div style="font-size:7px;color:#f59e0b;margin-top:2px">&#9733; 18</div></div>
+            <div class="mock-card"><div class="mock-card-title">GraphQL Blog</div><div class="mock-card-text">github.com/dev/blog</div><div style="display:flex;gap:2px;margin-top:2px"><span class="tag tag-blue" style="font-size:6px">GraphQL</span><span class="tag tag-green" style="font-size:6px">React</span></div><div style="font-size:7px;color:#f59e0b;margin-top:2px">&#9733; 12</div></div>
+          </div>
+          <div class="mock-btn-group" style="margin-top:6px">
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-17">&larr; 커뮤니티 홈</span>
+            <span class="mock-btn mock-btn-primary" data-action="toast:프로젝트 등록 화면">프로젝트 등록</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s23" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>커뮤니티 홈</td><td>goto:slide-17</td></tr>
+          <tr><td>프로젝트 등록</td><td>toast</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: mobile (LEARNER) -->
+<!-- ============================================================ -->
+
+<!-- Slide 24: Mobile notification -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="24" data-set="mobile" id="slide-24">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-M-NTF-001</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/notifications</span>
+    <span class="badge badge-template">NotificationCenter.dart</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup" style="display:flex;justify-content:center;align-items:center">
+      <div class="mock-mobile-frame">
+        <div class="mock-screen">
+          <div style="background:var(--role-bg);padding:4px 6px;font-size:7px;font-weight:700;color:var(--role-text);text-align:center;border-bottom:1px solid var(--role-color)">DevPath AI</div>
+          <div style="padding:4px">
+            <div style="font-size:8px;font-weight:700;color:var(--color-text-bright);margin-bottom:4px">알림 센터</div>
+            <div class="notif-item" data-action="toast:AI 코드 리뷰 화면으로 이동"><span>&#129302;</span><div><div style="font-size:7px;font-weight:600;color:var(--color-text-bright)">AI 코드 리뷰 완료</div><div style="font-size:6px;color:var(--color-text-dim)">JPA 과제 #1201</div></div></div>
+            <div class="notif-item" data-action="toast:Q&A 답변 화면으로 이동"><span>&#128172;</span><div><div style="font-size:7px;font-weight:600;color:var(--color-text-bright)">답변이 도착했습니다</div><div style="font-size:6px;color:var(--color-text-dim)">현우님이 답변함</div></div></div>
+            <div class="notif-item" data-action="toast:대시보드로 이동"><span>&#128293;</span><div><div style="font-size:7px;font-weight:600;color:var(--color-text-bright)">3일 연속 학습!</div><div style="font-size:6px;color:var(--color-text-dim)">스트릭 유지 중</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s24" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>알림 클릭</td><td>toast "해당 화면으로 이동"</td></tr>
+        </tbody></table>
+      </div></details>
+      <details class="panel-section" name="panel-s24"><summary class="panel-section-header">플랫폼</summary><div class="panel-section-body">
+        <p>Flutter 3.x 모바일 앱<br>FCM Push Notification</p>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 25: Home dashboard -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="25" data-set="dashboard" id="slide-25">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-DASH-001</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /api/dashboard</span>
+    <span class="badge badge-template">Dashboard.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/dashboard</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar"><span class="mock-navbar-brand">DevPath AI</span><div class="mock-navbar-links"><span data-action="goto:slide-11">학습</span><span data-action="goto:slide-17">커뮤니티</span><span class="active">대시보드</span><span data-action="goto:slide-21">프로필</span></div></div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
+            <div class="streak-badge">&#128293; 3일 연속</div>
+            <div style="flex:1">
+              <div style="font-size:8px;color:var(--color-text-dim)">이번 주 진척률</div>
+              <div class="progress-indicator"><div class="progress-indicator-fill" style="width:60%"></div></div>
+              <div style="font-size:7px;color:var(--color-text-dim)">60% (3/5 과제)</div>
+            </div>
+          </div>
+          <div class="mock-card" style="border-color:#3fb950" data-action="goto:slide-12">
+            <div class="mock-card-title" style="color:#3fb950">다음 과제: QueryDSL 기초</div>
+            <div class="mock-card-text">&#128214; 읽기 자료 | 25분 | Week 3</div>
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:4px">
+            <span style="font-size:8px">&#127941; 첫 Aha</span>
+            <span style="font-size:8px">&#127941; AI 리뷰</span>
+            <span style="font-size:8px">&#127941; 3일 연속</span>
+          </div>
+          <div class="mock-card" style="border-color:#f59e0b">
+            <div class="mock-card-title" style="color:#f59e0b">&#128276; 답변 기다리는 질문 2개</div>
+            <div class="mock-card-text">커뮤니티에서 도움을 줄 수 있습니다</div>
+          </div>
+          <div class="mock-btn-group">
+            <span class="mock-btn mock-btn-primary" data-action="goto:slide-12">다음 과제 시작 &rarr;</span>
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-17">커뮤니티</span>
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-21">내 프로필</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s25" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>다음 과제 시작</td><td>goto:slide-12 (순환)</td></tr>
+          <tr><td>커뮤니티</td><td>goto:slide-17</td></tr>
+          <tr><td>내 프로필</td><td>goto:slide-21</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: admin-ops (ADMIN) -->
+<!-- ============================================================ -->
+
+<!-- Slide 26: Admin dashboard -->
+<section class="slide sb-slide" data-role="ADMIN" data-id="26" data-set="admin-ops" id="slide-26">
+  <header class="slide-header"><span class="header-title">DevPath AI | ADMIN</span><span class="header-screen-id">SCR-A-004</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /admin/dashboard</span>
+    <span class="badge badge-template">AdminDashboard.tsx</span>
+    <span class="badge badge-access">ADMIN</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/admin</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar"><span class="mock-navbar-brand">Admin</span><div class="mock-navbar-links"><span class="active">운영</span><span data-action="goto:slide-29">콘텐츠</span><span data-action="goto:slide-31">사용자</span></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;margin-bottom:4px">
+            <div class="kpi-card"><div class="kpi-value">127</div><div class="kpi-label">DAU</div><div class="kpi-delta">+12%</div></div>
+            <div class="kpi-card"><div class="kpi-value">843</div><div class="kpi-label">WAU</div><div class="kpi-delta">+8%</div></div>
+            <div class="kpi-card"><div class="kpi-value">2,150</div><div class="kpi-label">MAU</div><div class="kpi-delta">+15%</div></div>
+            <div class="kpi-card"><div class="kpi-value">+34</div><div class="kpi-label">신규</div><div class="kpi-delta">today</div></div>
+          </div>
+          <div style="font-size:8px;font-weight:600;color:var(--color-text-bright);margin-bottom:2px">Aha 퍼널</div>
+          <div class="funnel-bar" style="width:100%;background:#3fb950">랜딩 100%</div>
+          <div class="funnel-bar" style="width:42%;background:#2ea043">진단 42%</div>
+          <div class="funnel-bar" style="width:28%;background:#238636">가입 28%</div>
+          <div class="funnel-bar" style="width:25%;background:#196c2e">경로 25%</div>
+          <div class="funnel-bar" style="width:18%;background:#0f5323">학습 18%</div>
+          <div class="funnel-bar" style="width:12%;background:#033a16">AI리뷰 12%</div>
+          <div style="display:flex;gap:4px;font-size:7px;margin-top:3px">
+            <span style="color:#3fb950">5xx 0.02%&#10003;</span>
+            <span style="color:#3fb950">p95 1.8s&#10003;</span>
+            <span style="color:#3fb950">Sandbox 82%&#10003;</span>
+            <span style="color:#3fb950">Lag 3s&#10003;</span>
+          </div>
+          <div class="mock-btn-group" style="margin-top:4px">
+            <span class="mock-btn mock-btn-primary" data-action="goto:slide-27">AI 모니터링</span>
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-28">신고 처리</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s26" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>AI 모니터링</td><td>goto:slide-27</td></tr>
+          <tr><td>신고 처리</td><td>goto:slide-28</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 27: AI quality monitoring -->
+<section class="slide sb-slide" data-role="ADMIN" data-id="27" data-set="admin-ops" id="slide-27">
+  <header class="slide-header"><span class="header-title">DevPath AI | ADMIN</span><span class="header-screen-id">SCR-A-005</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /admin/ai/quality</span>
+    <span class="badge badge-template">AIQuality.tsx</span>
+    <span class="badge badge-access">ADMIN</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/admin/ai/quality</div></div>
+        <div class="mock-browser-body">
+          <div class="sim-tabs">
+            <span class="sim-tab sim-tab-active">코드 리뷰</span>
+            <span class="sim-tab">멘토</span>
+            <span class="sim-tab">시드 답변</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:4px">
+            <div class="kpi-card" style="flex:1"><div class="kpi-value" style="font-size:12px">78%</div><div class="kpi-label">&#128077; 비율</div></div>
+            <div class="kpi-card" style="flex:1"><div class="kpi-value" style="font-size:12px">92%</div><div class="kpi-label">골든 46/50</div></div>
+            <div class="kpi-card" style="flex:1"><div class="kpi-value" style="font-size:12px">4.2s</div><div class="kpi-label">평균 응답</div></div>
+          </div>
+          <table class="mock-table">
+            <thead><tr><th>주차</th><th>&#128077;</th><th>골든</th><th>응답</th></tr></thead>
+            <tbody>
+              <tr><td>W1</td><td>72%</td><td>88%</td><td>5.1s</td></tr>
+              <tr><td>W2</td><td>75%</td><td>90%</td><td>4.6s</td></tr>
+              <tr><td>W3</td><td>78%</td><td>92%</td><td>4.2s</td></tr>
+            </tbody>
+          </table>
+          <div class="mock-btn-group" style="margin-top:4px">
+            <span class="mock-btn mock-btn-primary" data-action="toast:회귀 테스트 시작됨 (50 케이스)">골든 케이스 회귀 실행</span>
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-26">&larr; 운영 대시보드</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s27" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>골든 케이스 회귀</td><td>toast</td></tr>
+          <tr><td>운영 대시보드</td><td>goto:slide-26</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 28: Report handling -->
+<section class="slide sb-slide" data-role="ADMIN" data-id="28" data-set="admin-ops" id="slide-28">
+  <header class="slide-header"><span class="header-title">DevPath AI | ADMIN</span><span class="header-screen-id">SCR-A-006</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /admin/reports</span>
+    <span class="badge badge-template">ReportHandling.tsx</span>
+    <span class="badge badge-access">ADMIN</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup" style="position:relative">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/admin/reports</div></div>
+        <div class="mock-browser-body">
+          <div style="font-size:9px;font-weight:700;color:var(--color-text-bright);margin-bottom:4px">신고 처리 <span style="color:#f87171">(미처리 12건)</span></div>
+          <table class="mock-table">
+            <thead><tr><th>ID</th><th>유형</th><th>대상</th><th>상태</th></tr></thead>
+            <tbody>
+              <tr data-action="toggle:report-detail-1"><td>#R01</td><td>스팸</td><td>게시글 #301</td><td><span class="mock-status mock-status-todo">미처리</span></td></tr>
+              <tr data-action="toggle:report-detail-1"><td>#R02</td><td>욕설</td><td>댓글 #892</td><td><span class="mock-status mock-status-todo">미처리</span></td></tr>
+              <tr><td>#R03</td><td>저작권</td><td>게시글 #278</td><td><span class="mock-status mock-status-done">처리됨</span></td></tr>
+            </tbody>
+          </table>
+          <div class="sim-toggle-target" id="report-detail-1">
+            <div class="mock-card" style="margin-top:4px;border-color:#f87171">
+              <div class="mock-card-title">신고 상세 -- #R01</div>
+              <div class="mock-card-text">원문: "이 글은 스팸입니다..."<br>AI 근거: 광고성 URL 3개 포함, 스팸 확률 94%</div>
+              <div class="mock-btn-group" style="margin-top:4px">
+                <span class="mock-btn mock-btn-danger" data-action="toast:신고 처리 완료">삭제+경고</span>
+                <span class="mock-btn mock-btn-outline" data-action="toggle:report-detail-1">닫기</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:6px"><span class="mock-btn mock-btn-outline" data-action="goto:slide-26">&larr; 운영 대시보드</span></div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s28" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>행 클릭</td><td>toggle 상세 패널</td></tr>
+          <tr><td>삭제+경고</td><td>toast</td></tr>
+          <tr><td>운영 대시보드</td><td>goto:slide-26</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: admin-content (ADMIN) -->
+<!-- ============================================================ -->
+
+<!-- Slide 29: Content management -->
+<section class="slide sb-slide" data-role="ADMIN" data-id="29" data-set="admin-content" id="slide-29">
+  <header class="slide-header"><span class="header-title">DevPath AI | ADMIN</span><span class="header-screen-id">SCR-A-001</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /admin/content</span>
+    <span class="badge badge-template">ContentMgmt.tsx</span>
+    <span class="badge badge-access">ADMIN</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup" style="position:relative">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/admin/content</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar"><span class="mock-navbar-brand">Admin</span><div class="mock-navbar-links"><span data-action="goto:slide-26">운영</span><span class="active">콘텐츠</span><span data-action="goto:slide-31">사용자</span></div></div>
+          <table class="mock-table">
+            <thead><tr><th>ID</th><th>제목</th><th>트랙</th><th>상태</th><th>액션</th></tr></thead>
+            <tbody>
+              <tr><td>C01</td><td>JPA 페치 전략</td><td>Spring</td><td><span class="mock-status mock-status-done">게시</span></td><td><span class="mock-btn mock-btn-danger" style="font-size:7px" data-action="modal:del-modal-s29">삭제</span></td></tr>
+              <tr><td>C02</td><td>Docker 기초</td><td>DevOps</td><td><span class="mock-status mock-status-doing">초안</span></td><td><span class="mock-btn mock-btn-danger" style="font-size:7px" data-action="modal:del-modal-s29">삭제</span></td></tr>
+              <tr><td>C03</td><td>Spring Security</td><td>Spring</td><td><span class="mock-status mock-status-done">게시</span></td><td><span class="mock-btn mock-btn-danger" style="font-size:7px" data-action="modal:del-modal-s29">삭제</span></td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:6px"><span class="mock-btn mock-btn-outline" data-action="goto:slide-31">사용자 관리 &rarr;</span></div>
+        </div>
+      </div>
+      <div class="sim-modal-overlay" id="del-modal-s29">
+        <div class="sim-modal">
+          <div class="sim-modal-title">삭제 확인</div>
+          <div class="sim-modal-body">이 콘텐츠를 삭제하시겠습니까?<br>연결된 과제도 함께 삭제됩니다.</div>
+          <div class="sim-modal-actions">
+            <span class="mock-btn mock-btn-outline" data-action="modal-close:">취소</span>
+            <span class="mock-btn mock-btn-danger" data-action="toast:콘텐츠 삭제됨">확인</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s29" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>삭제</td><td>모달 확인</td></tr>
+          <tr><td>사용자 관리</td><td>goto:slide-31</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 30: Diagnostic question management -->
+<section class="slide sb-slide" data-role="ADMIN" data-id="30" data-set="admin-content" id="slide-30">
+  <header class="slide-header"><span class="header-title">DevPath AI | ADMIN</span><span class="header-screen-id">SCR-A-007</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /admin/diagnostic</span>
+    <span class="badge badge-template">DiagMgmt.tsx</span>
+    <span class="badge badge-access">ADMIN</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/admin/diagnostic</div></div>
+        <div class="mock-browser-body">
+          <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:6px">진단 문항 관리</div>
+          <table class="mock-table">
+            <thead><tr><th>#</th><th>문항</th><th>Bloom</th><th>난이도</th><th>정답률</th></tr></thead>
+            <tbody>
+              <tr><td>Q01</td><td>N+1 해결법</td><td>분석</td><td>중</td><td>62%</td></tr>
+              <tr><td>Q02</td><td>트랜잭션 격리</td><td>이해</td><td>상</td><td>45%</td></tr>
+              <tr><td>Q03</td><td>REST 원칙</td><td>기억</td><td>하</td><td>85%</td></tr>
+              <tr><td>Q04</td><td>인덱스 설계</td><td>적용</td><td>중</td><td>58%</td></tr>
+            </tbody>
+          </table>
+          <div class="mock-btn-group" style="margin-top:6px">
+            <span class="mock-btn mock-btn-primary" data-action="toast:파일 업로드 대기 중...">CSV 가져오기</span>
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-29">&larr; 콘텐츠 관리</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s30" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>CSV 가져오기</td><td>toast</td></tr>
+          <tr><td>콘텐츠 관리</td><td>goto:slide-29</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: admin-user (ADMIN) -->
+<!-- ============================================================ -->
+
+<!-- Slide 31: User management -->
+<section class="slide sb-slide" data-role="ADMIN" data-id="31" data-set="admin-user" id="slide-31">
+  <header class="slide-header"><span class="header-title">DevPath AI | ADMIN</span><span class="header-screen-id">SCR-A-002</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /admin/users</span>
+    <span class="badge badge-template">UserMgmt.tsx</span>
+    <span class="badge badge-access">ADMIN</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup" style="position:relative">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/admin/users</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar"><span class="mock-navbar-brand">Admin</span><div class="mock-navbar-links"><span data-action="goto:slide-26">운영</span><span data-action="goto:slide-29">콘텐츠</span><span class="active">사용자</span></div></div>
+          <div class="mock-search-bar">
+            <input class="sim-input" placeholder="닉네임/이메일 검색..." style="flex:1">
+            <select class="sim-select"><option>전체</option><option>LEARNER</option><option>BANNED</option></select>
+          </div>
+          <table class="mock-table">
+            <thead><tr><th>ID</th><th>닉네임</th><th>역할</th><th>상태</th><th>액션</th></tr></thead>
+            <tbody>
+              <tr data-action="toggle:user-detail-1"><td>U01</td><td style="color:#58a6ff">지수</td><td>LEARNER</td><td><span class="mock-status mock-status-done">활성</span></td><td><span class="mock-btn mock-btn-danger" style="font-size:7px" data-action="modal:ban-modal-s31">밴</span></td></tr>
+              <tr><td>U02</td><td style="color:#58a6ff">민수</td><td>LEARNER</td><td><span class="mock-status mock-status-done">활성</span></td><td><span class="mock-btn mock-btn-danger" style="font-size:7px" data-action="modal:ban-modal-s31">밴</span></td></tr>
+              <tr><td>U03</td><td style="color:#58a6ff">스패머</td><td>LEARNER</td><td><span class="mock-status" style="background:#fee2e2;color:#991b1b">밴</span></td><td>-</td></tr>
+            </tbody>
+          </table>
+          <div class="sim-toggle-target" id="user-detail-1">
+            <div class="mock-card" style="margin-top:4px"><div class="mock-card-title">지수 상세</div><div class="mock-card-text">가입일: 2026-04-20 | 평판: 120 | 학습 진척: 60%</div></div>
+          </div>
+          <div style="margin-top:6px"><span class="mock-btn mock-btn-outline" data-action="goto:slide-32">FinOps &rarr;</span></div>
+        </div>
+      </div>
+      <div class="sim-modal-overlay" id="ban-modal-s31">
+        <div class="sim-modal">
+          <div class="sim-modal-title">사용자 밴 확인</div>
+          <div class="sim-modal-body">이 사용자를 정말 밴 처리하시겠습니까?<br>학습 데이터는 보존됩니다.</div>
+          <div class="sim-modal-actions">
+            <span class="mock-btn mock-btn-outline" data-action="modal-close:">취소</span>
+            <span class="mock-btn mock-btn-danger" data-action="toast:사용자 밴 처리 완료">확인</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s31" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>행 클릭</td><td>toggle 상세</td></tr>
+          <tr><td>밴</td><td>모달 확인</td></tr>
+          <tr><td>FinOps</td><td>goto:slide-32</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 32: FinOps + Sandbox log -->
+<section class="slide sb-slide" data-role="ADMIN" data-id="32" data-set="admin-user" id="slide-32">
+  <header class="slide-header"><span class="header-title">DevPath AI | ADMIN</span><span class="header-screen-id">SCR-A-003 + SCR-A-008</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /admin/finops</span>
+    <span class="badge badge-template">FinOps.tsx</span>
+    <span class="badge badge-access">ADMIN</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/admin/finops</div></div>
+        <div class="mock-browser-body">
+          <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:6px">FinOps + Sandbox 로그</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">
+            <div class="kpi-card"><div class="kpi-value" style="font-size:12px">$127</div><div class="kpi-label">금일 AI 비용</div><div class="kpi-delta">예산 $200</div></div>
+            <div class="kpi-card"><div class="kpi-value" style="font-size:12px">$2,840</div><div class="kpi-label">월간 AI 비용</div><div class="kpi-delta">예산 $5,000</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:9px;color:var(--color-text-bright);font-weight:600">Kill-switch</span>
+            <span class="kill-switch kill-switch-off" data-action="toast:Kill-switch 활성화됨">OFF</span>
+          </div>
+          <div style="font-size:8px;font-weight:600;color:var(--color-text-bright);margin-bottom:3px">Sandbox 로그</div>
+          <table class="mock-table">
+            <thead><tr><th>시간</th><th>사용자</th><th>실행시간</th><th>상태</th></tr></thead>
+            <tbody>
+              <tr><td>14:32</td><td>지수</td><td>2.1s</td><td><span class="mock-status mock-status-done">성공</span></td></tr>
+              <tr><td>14:28</td><td>민수</td><td>8.5s</td><td><span class="mock-status" style="background:#fee2e2;color:#991b1b">타임아웃</span></td></tr>
+              <tr><td>14:15</td><td>유진</td><td>1.8s</td><td><span class="mock-status mock-status-done">성공</span></td></tr>
+            </tbody>
+          </table>
+          <div style="margin-top:6px"><span class="mock-btn mock-btn-outline" data-action="goto:slide-26">&larr; 운영 대시보드</span></div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s32" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>결과</th></tr></thead><tbody>
+          <tr><td>Kill-switch</td><td>toast "활성화됨"</td></tr>
+          <tr><td>운영 대시보드</td><td>goto:slide-26</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SET: admin-ai (ADMIN) — NEW v4.0 slides -->
+<!-- ============================================================ -->
+
+<!-- Slide 33: Admin AI Dashboard (NEW v4.0) -->
+<section class="slide sb-slide" data-role="ADMIN" data-id="33" data-set="admin-ai" id="slide-33">
+  <header class="slide-header"><span class="header-title">DevPath AI | ADMIN</span><span class="header-screen-id">SCR-A-009</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-get">GET</span> /admin/ai/dashboard</span>
+    <span class="badge badge-template">AdminAIDashboard.tsx</span>
+    <span class="badge badge-access">ADMIN</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/admin/ai/dashboard</div></div>
+        <div class="mock-browser-body">
+          <div class="mock-navbar"><span class="mock-navbar-brand">Admin</span><div class="mock-navbar-links"><span data-action="goto:slide-26">운영</span><span data-action="goto:slide-27">AI 품질</span><span class="active">AI 대시보드</span></div></div>
+          <!-- AI Seed Resolution Rate -->
+          <div style="font-size:9px;font-weight:700;color:var(--color-text-bright);margin-bottom:3px">AI 시드 해결률</div>
+          <div style="display:flex;gap:6px;margin-bottom:4px">
+            <div class="kpi-card" style="flex:1"><div class="kpi-value" style="font-size:14px;color:#3fb950">58%</div><div class="kpi-label">현재 해결률</div><div style="font-size:6px;color:var(--color-text-dim)">목표: 40-60%</div></div>
+            <div class="kpi-card" style="flex:1"><div class="kpi-value" style="font-size:14px">142</div><div class="kpi-label">금주 AI 시드</div><div class="kpi-delta">+18%</div></div>
+            <div class="kpi-card" style="flex:1"><div class="kpi-value" style="font-size:14px;color:#f59e0b">7</div><div class="kpi-label">모더레이션 큐</div><div style="font-size:6px;color:#f87171">3건 미처리</div></div>
+          </div>
+          <!-- Resolution rate graph (simplified bar chart) -->
+          <div style="font-size:7px;color:var(--color-text-dim);margin-bottom:2px">주간 AI 해결률 추이</div>
+          <div style="display:flex;align-items:flex-end;gap:2px;height:40px;margin-bottom:2px;border-bottom:1px solid var(--color-border);position:relative">
+            <div style="position:absolute;top:4px;left:0;right:0;border-top:1px dashed #f87171;font-size:5px;color:#f87171">80%</div>
+            <div style="position:absolute;top:12px;left:0;right:0;border-top:1px dashed #f59e0b;font-size:5px;color:#f59e0b">70%</div>
+            <div style="flex:1;height:55%;background:#3fb950;border-radius:2px 2px 0 0;opacity:.7" title="W1: 55%"></div>
+            <div style="flex:1;height:52%;background:#3fb950;border-radius:2px 2px 0 0;opacity:.7" title="W2: 52%"></div>
+            <div style="flex:1;height:60%;background:#3fb950;border-radius:2px 2px 0 0;opacity:.8" title="W3: 60%"></div>
+            <div style="flex:1;height:58%;background:#3fb950;border-radius:2px 2px 0 0" title="W4: 58%"></div>
+          </div>
+          <div style="font-size:6px;color:var(--color-text-dim);display:flex;justify-content:space-between;margin-bottom:4px"><span>W1</span><span>W2</span><span>W3</span><span>W4</span></div>
+          <!-- Content Bottleneck Data Flywheel -->
+          <div style="font-size:9px;font-weight:700;color:var(--color-text-bright);margin-bottom:2px">콘텐츠 병목 데이터 플라이휠</div>
+          <table class="mock-table">
+            <thead><tr><th>콘텐츠</th><th>질문 수</th><th>병목 지점</th><th>개선 필요</th></tr></thead>
+            <tbody>
+              <tr><td style="color:#58a6ff">JPA N+1 해결</td><td style="color:#f87171;font-weight:700">24</td><td>Step 3/5</td><td><span class="mock-status mock-status-doing">우선</span></td></tr>
+              <tr><td style="color:#58a6ff">Spring Security</td><td>12</td><td>Step 2/4</td><td><span class="mock-status mock-status-todo">검토</span></td></tr>
+              <tr><td style="color:#58a6ff">Docker 기초</td><td>8</td><td>Step 1/3</td><td><span class="mock-status mock-status-todo">보통</span></td></tr>
+            </tbody>
+          </table>
+          <div class="mock-btn-group" style="margin-top:4px">
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-26">&larr; 운영 대시보드</span>
+            <span class="mock-btn mock-btn-primary" data-action="goto:slide-27">AI 품질 모니터링</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s33" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>API</th><th>결과</th></tr></thead><tbody>
+          <tr><td>운영 대시보드</td><td>-</td><td>goto:slide-26</td></tr>
+          <tr><td>AI 품질 모니터링</td><td>-</td><td>goto:slide-27</td></tr>
+        </tbody></table>
+      </div></details>
+      <details class="panel-section" name="panel-s33"><summary class="panel-section-header">View Model</summary><div class="panel-section-body">
+        <ul class="vm-tree">
+          <li class="vm-node"><span class="vm-key">aiSeedResolutionRate</span><span class="vm-type">float</span></li>
+          <li class="vm-node"><span class="vm-key">weeklyRateTrend</span><span class="vm-type">float[]</span></li>
+          <li class="vm-node"><span class="vm-key">moderationQueueCount</span><span class="vm-type">int</span></li>
+          <li class="vm-node"><span class="vm-key">contentBottlenecks</span><span class="vm-type">Bottleneck[]</span></li>
+          <li class="vm-node"><span class="vm-key">thresholdWarning</span><span class="vm-type">70%</span></li>
+          <li class="vm-node"><span class="vm-key">thresholdAction</span><span class="vm-type">80%</span></li>
+        </ul>
+      </div></details>
+      <details class="panel-section" name="panel-s33"><summary class="panel-section-header">이벤트</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>이벤트</th><th>트리거</th></tr></thead><tbody>
+          <tr><td><code>community.ai_answer.escalated</code></td><td>AI 불충분 평가 시</td></tr>
+          <tr><td><code>community.question.unanswered_24h</code></td><td>24시간 미답변 자동 승격</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+<!-- Slide 34: Escalation flow (NEW v4.0) -->
+<section class="slide sb-slide" data-role="LEARNER" data-id="34" data-set="community" id="slide-34">
+  <header class="slide-header"><span class="header-title">DevPath AI | LEARNER</span><span class="header-screen-id">SCR-W-COM-009</span></header>
+  <div class="slide-badges">
+    <span class="badge badge-method"><span class="method-label method-post">POST</span> /community/questions/{id}/escalate</span>
+    <span class="badge badge-template">EscalationFlow.tsx</span>
+    <span class="badge badge-access">LEARNER</span>
+  </div>
+  <div class="slide-main">
+    <div class="slide-mockup">
+      <div class="mock-browser">
+        <div class="mock-browser-bar"><div class="mock-browser-dots"><span></span><span></span><span></span></div><div class="mock-browser-url">devpath.ai/community/qna/42/escalate</div></div>
+        <div class="mock-browser-body">
+          <div style="font-size:10px;font-weight:700;color:var(--color-text-bright);margin-bottom:4px">AI 답변이 부족했나요?</div>
+          <div style="font-size:8px;color:var(--color-text-dim);margin-bottom:6px;line-height:1.4">커뮤니티 개발자들에게 직접 도움을 요청할 수 있습니다.</div>
+          <!-- Escalation options -->
+          <div class="mock-card" style="border-color:#3fb950;cursor:pointer" data-action="toast:커뮤니티에 공개되었습니다. 예상 답변 시간: 24시간 이내">
+            <div class="mock-card-title" style="color:#3fb950">커뮤니티에 공개하기</div>
+            <div class="mock-card-text">무료 &#183; 미답변 큐에 등록 &#183; 태그 매칭 답변자에게 알림</div>
+            <div style="font-size:7px;color:var(--color-text-dim);margin-top:2px">예상 답변: 24시간 이내</div>
+          </div>
+          <div class="mock-card" style="border-color:#f59e0b;cursor:pointer" data-action="toggle:bounty-input-s34">
+            <div class="mock-card-title" style="color:#f59e0b">현상금 걸기</div>
+            <div class="mock-card-text">평판 포인트 사용 &#183; 강화 노출 &#183; 더 빠른 답변</div>
+            <div style="font-size:7px;color:var(--color-text-dim);margin-top:2px">50~500 평판 포인트 (즉시 차감)</div>
+          </div>
+          <!-- Bounty amount input (toggled) -->
+          <div class="sim-toggle-target" id="bounty-input-s34">
+            <div style="display:flex;gap:4px;align-items:center;margin-top:4px;margin-bottom:4px">
+              <span style="font-size:8px;color:var(--color-text)">현상금:</span>
+              <input class="sim-input" type="number" placeholder="50" style="width:60px" min="50" max="500" step="50">
+              <span style="font-size:7px;color:var(--color-text-dim)">평판 포인트</span>
+              <span class="mock-btn mock-btn-primary" style="font-size:7px" data-action="toast:현상금 50 포인트가 걸렸습니다. 강화 노출 시작!">확인</span>
+            </div>
+          </div>
+          <!-- Context attachment options -->
+          <div style="font-size:7px;color:var(--color-text-dim);margin-top:4px;margin-bottom:2px">첨부 옵션:</div>
+          <div style="font-size:7px;display:flex;flex-direction:column;gap:1px">
+            <label style="display:flex;align-items:center;gap:3px;color:var(--color-text)"><input type="checkbox" checked style="width:8px;height:8px"> AI 답변도 함께 공개</label>
+            <label style="display:flex;align-items:center;gap:3px;color:var(--color-text)"><input type="checkbox" checked style="width:8px;height:8px"> 학습 맥락 첨부</label>
+          </div>
+          <div class="mock-btn-group" style="margin-top:6px">
+            <span class="mock-btn mock-btn-outline" data-action="goto:slide-19">&larr; 돌아가기</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="slide-panel">
+      <details class="panel-section" name="panel-s34" open><summary class="panel-section-header">액션 정의</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>액션</th><th>API</th><th>결과</th></tr></thead><tbody>
+          <tr><td>커뮤니티에 공개</td><td><span class="method-badge post">POST</span> <code>/community/questions/{id}/escalate</code></td><td>toast "공개됨"</td></tr>
+          <tr><td>현상금 걸기</td><td><span class="method-badge post">POST</span> <code>/community/questions/{id}/escalate</code></td><td>toggle 현상금 입력</td></tr>
+          <tr><td>현상금 확인</td><td><code>bounty_amount: N</code></td><td>toast "강화 노출"</td></tr>
+          <tr><td>돌아가기</td><td>-</td><td>goto:slide-19</td></tr>
+        </tbody></table>
+      </div></details>
+      <details class="panel-section" name="panel-s34"><summary class="panel-section-header">View Model</summary><div class="panel-section-body">
+        <ul class="vm-tree">
+          <li class="vm-node"><span class="vm-key">questionId</span><span class="vm-type">long</span></li>
+          <li class="vm-node"><span class="vm-key">attach_ai_answer</span><span class="vm-type">boolean</span></li>
+          <li class="vm-node"><span class="vm-key">attach_learning_context</span><span class="vm-type">boolean</span></li>
+          <li class="vm-node"><span class="vm-key">bounty_amount</span><span class="vm-type">int? (50-500)</span></li>
+          <li class="vm-node"><span class="vm-key">escalation_status</span><span class="vm-type">enum</span></li>
+          <li class="vm-node"><span class="vm-key">estimated_response_time</span><span class="vm-type">string</span></li>
+          <li class="vm-node"><span class="vm-key">queue_position</span><span class="vm-type">int</span></li>
+        </ul>
+      </div></details>
+      <details class="panel-section" name="panel-s34"><summary class="panel-section-header">이벤트</summary><div class="panel-section-body">
+        <table class="action-table"><thead><tr><th>이벤트</th><th>트리거</th></tr></thead><tbody>
+          <tr><td><code>community.ai_answer.escalated</code></td><td>에스컬레이션 실행 시</td></tr>
+          <tr><td><code>community.question.unanswered_24h</code></td><td>24시간 미답변 자동 승격</td></tr>
+        </tbody></table>
+      </div></details>
+    </aside>
+  </div>
+</section>
+
+</div><!-- .slides -->
+</div><!-- .presentation -->
+
+<!-- Overlays -->
+<div class="role-filter">
+  <button class="role-filter-btn active" data-filter="ALL">전체</button>
+  <button class="role-filter-btn" data-filter="PUBLIC" style="border-color:#8b949e;color:#8b949e">PUBLIC</button>
+  <button class="role-filter-btn" data-filter="LEARNER" style="border-color:#3fb950;color:#3fb950">LEARNER</button>
+  <button class="role-filter-btn" data-filter="ADMIN" style="border-color:#58a6ff;color:#58a6ff">ADMIN</button>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+<div class="slide-counter"><span id="counterCurrent">1</span> / <span id="counterTotal">34</span></div>
+
+<div class="toc-overlay" id="toc-overlay"></div>
+<nav class="toc-sidebar" id="toc-sidebar">
+  <div class="toc-title">목차</div>
+  <ul id="toc-list"></ul>
+</nav>
+
+<div class="help-overlay" id="helpOverlay">
+  <div class="help-box">
+    <h2>키보드 단축키</h2>
+    <div class="help-row"><span>이전 / 다음</span><span><span class="help-key">&larr;</span> <span class="help-key">&rarr;</span></span></div>
+    <div class="help-row"><span>처음 / 끝</span><span><span class="help-key">Home</span> <span class="help-key">End</span></span></div>
+    <div class="help-row"><span>다음 / 이전 세트</span><span><span class="help-key">Tab</span> <span class="help-key">Shift+Tab</span></span></div>
+    <div class="help-row"><span>목차 토글</span><span><span class="help-key">T</span></span></div>
+    <div class="help-row"><span>풀스크린</span><span><span class="help-key">F</span></span></div>
+    <div class="help-row"><span>도움말</span><span><span class="help-key">?</span></span></div>
+    <div class="help-row"><span>닫기</span><span><span class="help-key">Esc</span></span></div>
+    <p style="text-align:center;margin-top:16px;font-size:11px;color:var(--color-text-dim);">아무 키나 눌러 닫기</p>
+  </div>
+</div>
+
+<div class="sim-mode-badge">&#127918; 인터랙티브</div>
+
+<script>
+(function(){
+  "use strict";
+
+  let allSlides=[];
+  let filtered=[];
+  let currentIdx=0;
+  let isAnimating=false;
+  let currentRole="ALL";
+
+  const slidesContainer=document.querySelector(".slides");
+  const progressFill=document.getElementById("progressFill");
+  const counterCurrent=document.getElementById("counterCurrent");
+  const counterTotal=document.getElementById("counterTotal");
+  const helpOverlay=document.getElementById("helpOverlay");
+  const tocSidebar=document.getElementById("toc-sidebar");
+  const tocOverlay=document.getElementById("toc-overlay");
+  const tocList=document.getElementById("toc-list");
+
+  function init(){
+    buildSlideIndex();
+    applyRoleFilter("ALL");
+    fitSlides();
+    window.addEventListener("resize",fitSlides);
+    parseHash();
+  }
+
+  function buildSlideIndex(){
+    allSlides=Array.from(document.querySelectorAll(".slide"));
+  }
+
+  function fitSlides(){
+    const vw=window.innerWidth;
+    const vh=window.innerHeight;
+    const scale=Math.min(vw/960,vh/540,1.5);
+    slidesContainer.style.setProperty("--slide-scale",scale);
+  }
+
+  function applyRoleFilter(role){
+    currentRole=role;
+    filtered=role==="ALL"?allSlides:allSlides.filter(el=>el.dataset.role===role||el.dataset.role==="ALL");
+    allSlides.forEach(el=>el.classList.remove("active"));
+    currentIdx=0;
+    if(filtered.length>0)filtered[0].classList.add("active");
+    updateProgress();
+    updateTOCPanel();
+    setHashState(role,filtered[0]?.dataset.id||"01");
+    document.querySelectorAll(".role-filter-btn").forEach(btn=>{
+      btn.classList.toggle("active",btn.dataset.filter===role);
+    });
+  }
+
+  function showSlide(index){
+    if(isAnimating)return;
+    if(index<0||index>=filtered.length)return;
+    if(index===currentIdx)return;
+    isAnimating=true;
+    filtered[currentIdx].classList.remove("active");
+    currentIdx=index;
+    filtered[currentIdx].classList.add("active");
+    updateProgress();
+    setHashState(currentRole,filtered[currentIdx].dataset.id);
+    const slide=filtered[currentIdx];
+    slide.addEventListener("transitionend",function handler(){
+      slide.removeEventListener("transitionend",handler);
+      isAnimating=false;
+    });
+    setTimeout(()=>{isAnimating=false;},600);
+  }
+
+  function updateProgress(){
+    const total=filtered.length;
+    const pct=total>1?(currentIdx/(total-1))*100:100;
+    progressFill.style.width=pct+"%";
+    counterCurrent.textContent=currentIdx+1;
+    counterTotal.textContent=total;
+  }
+
+  function getHashState(){
+    const raw=location.hash.replace(/^#/,"");
+    const params=new URLSearchParams(raw);
+    return{role:params.get("role")||"ALL",slide:params.get("slide")||"01"};
+  }
+
+  function setHashState(role,slideId){
+    const params=new URLSearchParams();
+    params.set("role",role);
+    params.set("slide",slideId);
+    history.replaceState(null,"","#"+params.toString());
+  }
+
+  function parseHash(){
+    const state=getHashState();
+    if(state.role!==currentRole)applyRoleFilter(state.role);
+    const idx=filtered.findIndex(el=>el.dataset.id===state.slide);
+    if(idx>=0&&idx!==currentIdx){
+      filtered[currentIdx].classList.remove("active");
+      currentIdx=idx;
+      filtered[currentIdx].classList.add("active");
+      updateProgress();
+    }
+  }
+
+  function nextSet(){
+    const currentSet=filtered[currentIdx]?.dataset.set;
+    const idx=filtered.findIndex((el,i)=>i>currentIdx&&el.dataset.set!==currentSet);
+    if(idx>=0)showSlide(idx);
+  }
+
+  function prevSet(){
+    const currentSet=filtered[currentIdx]?.dataset.set;
+    for(let i=currentIdx-1;i>=0;i--){
+      if(filtered[i].dataset.set!==currentSet){
+        const setName=filtered[i].dataset.set;
+        const first=filtered.findIndex(el=>el.dataset.set===setName);
+        showSlide(first);
+        return;
+      }
+    }
+  }
+
+  function toggleTOC(){
+    const isOpen=tocSidebar.classList.contains("toc-open");
+    tocSidebar.classList.toggle("toc-open",!isOpen);
+    tocOverlay.classList.toggle("visible",!isOpen);
+  }
+
+  function updateTOCPanel(){
+    tocList.innerHTML="";
+    let lastSet=null;
+    filtered.forEach((el,idx)=>{
+      const id=el.dataset.id;
+      const set=el.dataset.set||"";
+      const role=el.dataset.role||"";
+      if(set&&set!==lastSet){
+        const header=document.createElement("li");
+        header.className="toc-set-header";
+        header.textContent=set.replace(/-/g," ").toUpperCase();
+        tocList.appendChild(header);
+        lastSet=set;
+      }
+      const title=el.querySelector(".header-title")?.textContent||el.querySelector("h1")?.textContent||el.querySelector("h2")?.textContent||("슬라이드 "+id);
+      const item=document.createElement("li");
+      item.className=idx===currentIdx?"toc-item active":"toc-item";
+      item.innerHTML='<span>#'+id+'</span> <span style="flex:1;font-size:10px;">'+title+'</span>';
+      if(role!=="ALL"){
+        item.innerHTML+='<span class="toc-role-badge">'+role+'</span>';
+      }
+      item.addEventListener("click",()=>{showSlide(idx);toggleTOC();});
+      tocList.appendChild(item);
+    });
+  }
+
+  tocOverlay.addEventListener("click",toggleTOC);
+
+  function toggleFullscreen(){
+    if(!document.fullscreenElement){
+      document.documentElement.requestFullscreen().catch(()=>{});
+    }else{
+      document.exitFullscreen();
+    }
+  }
+
+  function toggleHelp(){
+    helpOverlay.classList.toggle("show");
+  }
+
+  document.addEventListener("keydown",e=>{
+    if(e.target.matches("input, textarea, select"))return;
+    if(helpOverlay.classList.contains("show")){helpOverlay.classList.remove("show");e.preventDefault();return;}
+    switch(e.key){
+      case "ArrowRight":case " ":case "PageDown":e.preventDefault();showSlide(currentIdx+1);break;
+      case "ArrowLeft":case "PageUp":e.preventDefault();showSlide(currentIdx-1);break;
+      case "Home":e.preventDefault();showSlide(0);break;
+      case "End":e.preventDefault();showSlide(filtered.length-1);break;
+      case "Tab":e.preventDefault();e.shiftKey?prevSet():nextSet();break;
+      case "t":case "T":e.preventDefault();toggleTOC();break;
+      case "f":case "F":e.preventDefault();toggleFullscreen();break;
+      case "?":e.preventDefault();toggleHelp();break;
+      case "Escape":if(tocSidebar.classList.contains("toc-open"))toggleTOC();else if(document.fullscreenElement)document.exitFullscreen();break;
+    }
+  });
+
+  let pointerStartX=0;
+  document.addEventListener("pointerdown",e=>{pointerStartX=e.clientX;});
+  document.addEventListener("pointerup",e=>{
+    const dx=e.clientX-pointerStartX;
+    if(Math.abs(dx)>50){dx<0?showSlide(currentIdx+1):showSlide(currentIdx-1);}
+  });
+
+  document.querySelectorAll(".role-filter-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>applyRoleFilter(btn.dataset.filter));
+  });
+
+  window.addEventListener("hashchange",parseHash);
+
+  /* === Interactive simulator engine === */
+
+  const toastContainer=document.createElement("div");
+  toastContainer.className="sim-toast-container";
+  slidesContainer.appendChild(toastContainer);
+
+  slidesContainer.addEventListener("click",function(e){
+    const actionEl=e.target.closest("[data-action]");
+    if(!actionEl)return;
+    const action=actionEl.dataset.action;
+    if(!action)return;
+    e.stopPropagation();
+
+    const colonIdx=action.indexOf(":");
+    const type=colonIdx>=0?action.substring(0,colonIdx):action;
+    const value=colonIdx>=0?action.substring(colonIdx+1):"";
+
+    switch(type){
+      case "goto":{
+        const targetSlide=document.getElementById(value);
+        if(!targetSlide)return;
+        const targetIdx=filtered.indexOf(targetSlide);
+        if(targetIdx>=0)showSlide(targetIdx);
+        break;
+      }
+      case "modal":{
+        const modal=document.getElementById(value);
+        if(modal)modal.classList.add("sim-show");
+        break;
+      }
+      case "modal-close":{
+        const overlay=actionEl.closest(".sim-modal-overlay");
+        if(overlay)overlay.classList.remove("sim-show");
+        break;
+      }
+      case "toast":{
+        showSimToast(value,false);
+        break;
+      }
+      case "toast-error":{
+        showSimToast(value,true);
+        break;
+      }
+      case "toast-goto":{
+        const parts=value.split(":");
+        const msg=parts[0]||"";
+        const targetId=parts[1]||"";
+        const delayStr=parts[2]||"2000";
+        showSimToast(msg,false);
+        const delay=parseInt(delayStr)||2000;
+        const target=document.getElementById(targetId);
+        if(target){
+          setTimeout(()=>{
+            const idx=filtered.indexOf(target);
+            if(idx>=0)showSlide(idx);
+          },delay);
+        }
+        break;
+      }
+      case "toggle":{
+        const target=document.getElementById(value);
+        if(target)target.classList.toggle("sim-show");
+        break;
+      }
+      case "tab":{
+        const tabGroup=actionEl.closest(".sim-tabs");
+        if(!tabGroup)return;
+        tabGroup.querySelectorAll(".sim-tab").forEach(t=>t.classList.remove("sim-tab-active"));
+        actionEl.classList.add("sim-tab-active");
+        const panelContainer=tabGroup.parentElement;
+        panelContainer.querySelectorAll(".sim-tab-panel").forEach(p=>p.classList.remove("sim-tab-active"));
+        const panel=panelContainer.querySelector("#"+value);
+        if(panel)panel.classList.add("sim-tab-active");
+        break;
+      }
+    }
+  });
+
+  document.querySelectorAll(".sim-modal-overlay").forEach(overlay=>{
+    overlay.addEventListener("click",function(e){
+      if(e.target===overlay)overlay.classList.remove("sim-show");
+    });
+  });
+
+  function showSimToast(message,isError){
+    const toast=document.createElement("div");
+    toast.className="sim-toast"+(isError?" sim-toast-error":"");
+    toast.textContent=message;
+    toastContainer.appendChild(toast);
+    setTimeout(()=>toast.remove(),2500);
+  }
+
+  slidesContainer.addEventListener("focusout",function(e){
+    if(!e.target.matches(".sim-input[required], .sim-textarea[required]"))return;
+    if(e.target.value.trim()===""){e.target.classList.add("sim-invalid");}
+    else{e.target.classList.remove("sim-invalid");}
+  });
+
+  slidesContainer.addEventListener("input",function(e){
+    if(!e.target.matches(".sim-input, .sim-textarea"))return;
+    if(e.target.value.trim()!==""){e.target.classList.remove("sim-invalid");}
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
